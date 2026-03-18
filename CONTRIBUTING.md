@@ -1,55 +1,22 @@
 # Contributing to Oh My OpenCode
 
-First off, thanks for taking the time to contribute! This document provides guidelines and instructions for contributing to oh-my-opencode.
-
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Development Setup](#development-setup)
-  - [Testing Your Changes Locally](#testing-your-changes-locally)
-- [Project Structure](#project-structure)
-- [Development Workflow](#development-workflow)
-  - [Build Commands](#build-commands)
-  - [Code Style & Conventions](#code-style--conventions)
-- [Making Changes](#making-changes)
-  - [Adding a New Agent](#adding-a-new-agent)
-  - [Adding a New Hook](#adding-a-new-hook)
-  - [Adding a New Tool](#adding-a-new-tool)
-  - [Adding a New MCP Server](#adding-a-new-mcp-server)
-- [Pull Request Process](#pull-request-process)
-- [Publishing](#publishing)
-- [Getting Help](#getting-help)
-
-## Code of Conduct
-
-Be respectful, inclusive, and constructive. We're all here to make better tools together.
-
-## Language Policy
-
-**English is the primary language for all communications in this repository.**
-
-This includes:
-
-- Issues and bug reports
-- Pull requests and code reviews
-- Documentation and comments
-- Discussions and community interactions
-
-### Why English?
-
-- **Global Accessibility**: English allows contributors from all regions to collaborate effectively
-- **Consistency**: A single language keeps discussions organized and searchable
-- **Open Source Best Practice**: Most successful open-source projects use English as the lingua franca
-
-### Need Help with English?
-
-If English isn't your first language, don't worry! We value your contributions regardless of perfect grammar. You can:
-
-- Use translation tools to help compose messages
-- Ask for help from other community members
-- Focus on clear, simple communication rather than perfect prose
+- [Contributing to Oh My OpenCode](#contributing-to-oh-my-opencode)
+  - [Table of Contents](#table-of-contents)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Development Setup](#development-setup)
+    - [Testing Your Changes Locally](#testing-your-changes-locally)
+  - [Project Structure](#project-structure)
+  - [Development Workflow](#development-workflow)
+    - [Build Commands](#build-commands)
+    - [Code Style \& Conventions](#code-style--conventions)
+  - [Making Changes](#making-changes)
+    - [Adding a New Agent](#adding-a-new-agent)
+    - [Adding a New Hook](#adding-a-new-hook)
+    - [Adding a New Tool](#adding-a-new-tool)
+    - [Adding a New MCP Server](#adding-a-new-mcp-server)
 
 ## Getting Started
 
@@ -62,10 +29,6 @@ If English isn't your first language, don't worry! We value your contributions r
 ### Development Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/code-yeongyu/oh-my-openagent.git
-cd oh-my-openagent
-
 # Install dependencies (bun only - never use npm/yarn)
 bun install
 
@@ -226,50 +189,3 @@ export function createMyHook(input: PluginInput) {
 1. Create configuration in `src/mcp/`
 2. Add to `src/mcp/index.ts`
 3. Document in README if it requires external setup
-
-## Pull Request Process
-
-1. **Fork** the repository and create your branch from `dev`
-2. **Make changes** following the conventions above
-3. **Build and test** locally:
-   ```bash
-   bun run typecheck  # Ensure no type errors
-   bun run build      # Ensure build succeeds
-   ```
-4. **Test in OpenCode** using the local build method described above
-5. **Commit** with clear, descriptive messages:
-   - Use present tense ("Add feature" not "Added feature")
-   - Reference issues if applicable ("Fix #123")
-6. **Push** to your fork and create a Pull Request
-7. **Describe** your changes clearly in the PR description
-
-### PR Checklist
-
-- [ ] Code follows project conventions
-- [ ] `bun run typecheck` passes
-- [ ] `bun run build` succeeds
-- [ ] Tested locally with OpenCode
-- [ ] Updated documentation if needed (README, AGENTS.md)
-- [ ] No version changes in `package.json`
-
-## Publishing
-
-**Important**: Publishing is handled exclusively through GitHub Actions.
-
-- **Never** run `bun publish` directly (OIDC provenance issues)
-- **Never** modify `package.json` version locally
-- Maintainers use GitHub Actions workflow_dispatch:
-  ```bash
-  gh workflow run publish -f bump=patch  # or minor/major
-  ```
-
-## Getting Help
-
-- **Project Knowledge**: Check `AGENTS.md` for detailed project documentation
-- **Code Patterns**: Review existing implementations in `src/`
-- **Issues**: Open an issue for bugs or feature requests
-- **Discussions**: Start a discussion for questions or ideas
-
----
-
-Thank you for contributing to Oh My OpenCode! Your efforts help make AI-assisted coding better for everyone.
