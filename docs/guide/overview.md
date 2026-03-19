@@ -1,25 +1,6 @@
 # What Is Oh My OpenCode?
 
-Oh My OpenCode is a multi-model agent orchestration harness for OpenCode. It transforms a single AI agent into a coordinated development team that actually ships code.
-
-Not locked to Claude. Not locked to OpenAI. Not locked to anyone.
-
-Just better results, cheaper models, real orchestration.
-
----
-
 ## Quick Start
-
-### Installation
-
-Paste this into your LLM agent session:
-
-```
-Install and configure oh-my-opencode by following the instructions here:
-https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
-```
-
-Or read the full [Installation Guide](./installation.md) for manual setup, provider authentication, and troubleshooting.
 
 ### Your First Task
 

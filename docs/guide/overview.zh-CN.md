@@ -1,40 +1,5 @@
 # 什么是 Oh My OpenCode？
 
-Oh My OpenCode 是一个用于 OpenCode 的多模型智能体编排框架。它将单个 AI 智能体转变为一个真正能交付代码的协调开发团队。
-
-不锁定于 Claude。不锁定于 OpenAI。不锁定于任何人。
-
-只是更好的结果，更便宜的模型，真正的编排。
-
----
-
-## 快速开始
-
-### 安装
-
-将以下内容粘贴到您的 LLM 智能体会话中：
-
-```
-按照此处的说明安装和配置 oh-my-opencode：
-https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
-```
-
-或者阅读完整的[安装指南](./installation.md)了解手动设置、提供商身份验证和故障排除。
-
-### 您的第一个任务
-
-安装完成后，只需输入：
-
-```
-ultrawork
-```
-
-就这样。智能体会自动处理一切——探索您的代码库、研究模式、实现功能、通过诊断进行验证。持续工作直到完成。
-
-想要更多控制？按 **Tab** 键进入 [Prometheus 模式](./orchestration.md)进行基于访谈的规划，然后运行 `/start-work` 进行完整编排。
-
----
-
 ## 核心理念：打破束缚
 
 我们曾称此为"打了兴奋剂的 Claude Code"。这是错误的。
