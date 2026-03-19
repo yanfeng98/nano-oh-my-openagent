@@ -16,16 +16,6 @@ Want more control? Press **Tab** to enter [Prometheus mode](./orchestration.md) 
 
 ---
 
-## The Philosophy: Breaking Free
-
-We used to call this "Claude Code on steroids." That was wrong.
-
-This isn't about making Claude Code better. It's about breaking free from the idea that one model, one provider, one way of working is enough. Anthropic wants you locked in. OpenAI wants you locked in. Everyone wants you locked in.
-
-Oh My OpenCode doesn't play that game. It orchestrates across models, picking the right brain for the right job. Claude for orchestration. GPT for deep reasoning. Gemini for frontend. Haiku for quick tasks. All working together, automatically.
-
----
-
 ## How It Works: Agent Orchestration
 
 Instead of one agent doing everything, Oh My OpenCode uses **specialized agents that delegate to each other** based on task type.
@@ -49,15 +39,11 @@ User Request
 
 When Sisyphus delegates to a subagent, it doesn't pick a model name. It picks a **category** — `visual-engineering`, `ultrabrain`, `quick`, `deep`. The category automatically maps to the right model. You touch nothing.
 
-For a deep dive into how agents collaborate, see the [Orchestration System Guide](./orchestration.md).
-
 ---
 
 ## Meet the Agents
 
 ### Sisyphus: The Discipline Agent
-
-Named after the Greek myth. He rolls the boulder every day. Never stops. Never gives up.
 
 Sisyphus is your main orchestrator. He plans, delegates to specialists, and drives tasks to completion with aggressive parallel execution. He doesn't stop halfway. He doesn't get distracted. He finishes.
 
@@ -68,22 +54,11 @@ Sisyphus is your main orchestrator. He plans, delegates to specialists, and driv
 - **Kimi K2.5** — Great Claude-like alternative. Many users run this combo exclusively.
 - **GLM 5** — Solid option, especially via Z.ai.
 
-Sisyphus still works best on Claude-family models, Kimi, and GLM. GPT-5.4 now has a dedicated prompt path, but older GPT models are still a poor fit and should route to Hephaestus instead.
-
 ### Hephaestus: The Legitimate Craftsman
-
-Named with intentional irony. Anthropic blocked OpenCode from using their API because of this project. So the team built an autonomous GPT-native agent instead.
 
 Hephaestus runs on GPT-5.3 Codex. Give him a goal, not a recipe. He explores the codebase, researches patterns, and executes end-to-end without hand-holding. He is the legitimate craftsman because he was born from necessity, not privilege.
 
 Use Hephaestus when you need deep architectural reasoning, complex debugging across many files, or cross-domain knowledge synthesis. Switch to him explicitly when the work demands GPT-5.3 Codex's particular strengths.
-
-**Why this beats vanilla Codex CLI:**
-
-- **Multi-model orchestration.** Pure Codex is single-model. OmO routes different tasks to different models automatically. GPT for deep reasoning. Gemini for frontend. Haiku for speed. The right brain for the right job.
-- **Background agents.** Fire 5+ agents in parallel. Something Codex simply cannot do. While one agent writes code, another researches patterns, another checks documentation. Like a real dev team.
-- **Category system.** Tasks are routed by intent, not model name. `visual-engineering` gets Gemini. `ultrabrain` gets GPT-5.4. `quick` gets Haiku. No manual juggling.
-- **Accumulated wisdom.** Subagents learn from previous results. Conventions discovered in task 1 are passed to task 5. Mistakes made early aren't repeated. The system gets smarter as it works.
 
 ### Prometheus: The Strategic Planner
 
@@ -205,10 +180,6 @@ You can override specific agents or categories in your config:
 - MiniMax M2.5 — fast and smart for utility tasks
 - Grok Code Fast 1 — optimized for code grep/search
 
-See the [Agent-Model Matching Guide](./agent-model-matching.md) for complete details on which models work best for each agent, safe vs dangerous overrides, and provider priority chains.
-
----
-
 ## Why It's Better Than Pure Claude Code
 
 Claude Code is good. But it's a single agent running a single model doing everything alone.
@@ -238,18 +209,3 @@ Before acting on any request, Sisyphus classifies your true intent.
 Are you asking for research? Implementation? Investigation? A fix? The Intent Gate figures out what you actually want, not just the literal words you typed. This means the agent understands context, nuance, and the real goal behind your request.
 
 Claude Code doesn't have this. It takes your prompt and runs. Oh My OpenCode thinks first, then acts.
-
----
-
-## What's Next
-
-- **[Installation Guide](./installation.md)** — Complete setup instructions, provider authentication, and troubleshooting
-- **[Orchestration Guide](./orchestration.md)** — Deep dive into agent collaboration, planning with Prometheus, and execution with Atlas
-- **[Agent-Model Matching Guide](./agent-model-matching.md)** — Which models work best for each agent and how to customize
-- **[Configuration Reference](../reference/configuration.md)** — Full config options with examples
-- **[Features Reference](../reference/features.md)** — Complete feature documentation
-- **[Manifesto](../manifesto.md)** — Philosophy behind the project
-
----
-
-**Ready to start?** Type `ultrawork` and see what a coordinated AI team can do.
