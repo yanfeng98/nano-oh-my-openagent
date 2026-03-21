@@ -18,7 +18,6 @@ import { startTmuxCheck } from "./tools"
 let activePluginDispose: PluginDispose | null = null
 
 const OhMyOpenCodePlugin: Plugin = async (ctx) => {
-  // Initialize config context for plugin runtime (prevents warnings from hooks)
   initConfigContext("opencode", null)
   log("[OhMyOpenCodePlugin] ENTRY - plugin loading", {
     directory: ctx.directory,
@@ -120,7 +119,4 @@ export type {
   BuiltinCommandName,
 } from "./config"
 
-// NOTE: Do NOT export functions from main index.ts!
-// OpenCode treats ALL exports as plugin instances and calls them.
-// Config error utilities are available via "./shared/config-errors" for internal use only.
 export type { ConfigLoadError } from "./shared/config-errors"
