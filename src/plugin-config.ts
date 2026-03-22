@@ -160,7 +160,6 @@ export function loadPluginConfig(
   directory: string,
   ctx: unknown
 ): OhMyOpenCodeConfig {
-  // User-level config path - prefer .jsonc over .json
   const configDir = getOpenCodeConfigDir({ binary: "opencode" });
   const userBasePath = path.join(configDir, "oh-my-opencode");
   const userDetected = detectConfigFile(userBasePath);
@@ -169,7 +168,6 @@ export function loadPluginConfig(
       ? userDetected.path
       : userBasePath + ".json";
 
-  // Project-level config path - prefer .jsonc over .json
   const projectBasePath = path.join(directory, ".opencode", "oh-my-opencode");
   const projectDetected = detectConfigFile(projectBasePath);
   const projectConfigPath =
@@ -177,11 +175,9 @@ export function loadPluginConfig(
       ? projectDetected.path
       : projectBasePath + ".json";
 
-  // Load user config first (base)
   let config: OhMyOpenCodeConfig =
     loadConfigFromPath(userConfigPath, ctx) ?? {};
 
-  // Override with project config
   const projectConfig = loadConfigFromPath(projectConfigPath, ctx);
   if (projectConfig) {
     config = mergeConfigs(config, projectConfig);
