@@ -2,14 +2,6 @@
 
 *最后更新：2026-03-20*
 
-## 🎯 项目概览
-
-**oh-my-opencode** 是一个开源的OpenCode插件，提供：
-- **11个AI代理**协调工作（Sisyphus、Hephaestus、Oracle等）
-- **46个生命周期钩子** 管理各种事件
-- **26个工具**（LSP、AST-grep、Tmux等）
-- **模块化架构**，遵循严格的代码规范
-
 ## 📖 学习路径（从易到难）
 
 ### 阶段1：了解基础架构（1-2天）
@@ -17,20 +9,14 @@
 **目标**：理解项目的整体结构和核心概念
 
 **建议学习顺序**：
-1. **阅读项目文档**：
-   - `README.md` - 项目介绍和核心功能
-   - `docs/guide/installation.zh-CN.md` - 中文安装指南
-   - `AGENTS.md` - 项目架构总览
 
-2. **分析入口文件**：
+1. **分析入口文件**：
    ```bash
    # 查看插件初始化流程
    cat src/index.ts
    ```
-   - 理解 `OhMyOpenCodePlugin` 的5步初始化流程
-   - 学习工厂模式（每个模块都有 `createXXX()` 函数）
 
-3. **理解配置系统**：
+2. **理解配置系统**：
    ```bash
    # 查看配置加载
    cat src/plugin-config.ts
