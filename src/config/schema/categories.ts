@@ -2,7 +2,6 @@ import { z } from "zod"
 import { FallbackModelsSchema } from "./fallback-models"
 
 export const CategoryConfigSchema = z.object({
-  /** Human-readable description of the category's purpose. Shown in task prompt. */
   description: z.string().optional(),
   model: z.string().optional(),
   fallback_models: FallbackModelsSchema.optional(),
@@ -21,9 +20,7 @@ export const CategoryConfigSchema = z.object({
   tools: z.record(z.string(), z.boolean()).optional(),
   prompt_append: z.string().optional(),
   max_prompt_tokens: z.number().int().positive().optional(),
-  /** Mark agent as unstable - forces background mode for monitoring. Auto-enabled for gemini/minimax models. */
   is_unstable_agent: z.boolean().optional(),
-  /** Disable this category. Disabled categories are excluded from task delegation. */
   disable: z.boolean().optional(),
 })
 
