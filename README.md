@@ -6,43 +6,11 @@ We did the work. Tested everything. Kept what actually shipped.
 
 Install OmO. Type `ultrawork`. Done.
 
-
-## Installation
-
-### For Humans
-
-Copy and paste this prompt to your LLM agent (Claude Code, AmpCode, Cursor, etc.):
-
-```
-Install and configure oh-my-opencode by following the instructions here:
-https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
-```
-
-Or read the [Installation Guide](docs/guide/installation.md), but seriously, let an agent do it. Humans fat-finger configs.
-
-### For LLM Agents
-
-Fetch the installation guide and follow it:
-
-```bash
-curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
-```
-
 ## Highlights
 
 ### 🪄 `ultrawork`
 
-You're actually reading this? Wild.
-
 Install. Type `ultrawork` (or `ulw`). Done.
-
-Everything below, every feature, every optimization, you don't need to know it. It just works.
-
-Even only with following subscriptions, ultrawork will work well (this project is not affiliated, this is just personal recommendation):
-- [ChatGPT Subscription ($20)](https://chatgpt.com/)
-- [Kimi Code Subscription ($0.99) (*only this month)](https://www.kimi.com/kimiplus/sale)
-- [GLM Coding Plan ($10)](https://z.ai/subscribe)
-- If you are eligible for pay-per-token, using kimi and gemini models won't cost you that much.
 
 |       | Feature                                                  | What it does                                                                                                                                                                                                     |
 | :---: | :------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,10 +38,6 @@ Even only with following subscriptions, ultrawork will work well (this project i
 
 **Prometheus** (`claude-opus-4-6` / **`kimi-k2.5`** / **`glm-5`** ) is your strategic planner. Interview mode: it questions, identifies scope, and builds a detailed plan before a single line of code is touched.
 
-Every agent is tuned to its model's specific strengths. No manual model-juggling. [Learn more →](docs/guide/overview.md)
-
-> We run best on Opus, but Kimi K2.5 + GPT-5.3 Codex already beats vanilla Claude Code. Zero config needed.
-
 ### Agent Orchestration
 
 When Sisyphus delegates to a subagent, it doesn't pick a model. It picks a **category**. The category maps automatically to the right model:
@@ -85,32 +49,14 @@ When Sisyphus delegates to a subagent, it doesn't pick a model. It picks a **cat
 | `quick`              | Single-file changes, typos         |
 | `ultrabrain`         | Hard logic, architecture decisions |
 
-Agent says what kind of work. Harness picks the right model. `ultrabrain` now routes to GPT-5.4 xhigh by default. You touch nothing.
-
-### Claude Code Compatibility
-
-You dialed in your Claude Code setup. Good.
-
-Every hook, command, skill, MCP, plugin works here unchanged. Full compatibility, including plugins.
-
 ### World-Class Tools for Your Agents
-
-LSP, AST-Grep, Tmux, MCP actually integrated, not duct-taped together.
 
 - **LSP**: `lsp_rename`, `lsp_goto_definition`, `lsp_find_references`, `lsp_diagnostics`. IDE precision for every agent
 - **AST-Grep**: Pattern-aware code search and rewriting across 25 languages
 - **Tmux**: Full interactive terminal. REPLs, debuggers, TUI apps. Your agent stays in session
 - **MCP**: Web search, official docs, GitHub code search. All baked in
 
-### Skill-Embedded MCPs
-
-MCP servers eat your context budget. We fixed that.
-
-Skills bring their own MCP servers. Spin up on-demand, scoped to task, gone when done. Context window stays clean.
-
 ### Codes Better. Hash-Anchored Edits
-
-The harness problem is real. Most agent failures aren't the model. It's the edit tool.
 
 > *"None of these tools give the model a stable, verifiable identifier for the lines it wants to change... They all rely on the model reproducing content it already saw. When it can't - and it often can't - the user blames the model."*
 >
@@ -125,8 +71,6 @@ Inspired by [oh-my-pi](https://github.com/can1357/oh-my-pi), we implemented **Ha
 ```
 
 The agent edits by referencing those tags. If the file changed since the last read, the hash won't match and the edit is rejected before corruption. No whitespace reproduction. No stale-line errors.
-
-Grok Code Fast 1: **6.7% → 68.3%** success rate. Just from changing the edit tool.
 
 ### Deep Initialization. `/init-deep`
 
@@ -145,8 +89,6 @@ Agents auto-read relevant context. Zero manual management.
 
 ### Planning. Prometheus
 
-Complex task? Don't prompt and pray.
-
 `/start-work` calls Prometheus. **Interviews you like a real engineer**, identifies scope and ambiguities, builds a verified plan before touching code. Agent knows what it's building before it starts.
 
 ### Skills
@@ -160,12 +102,6 @@ Skills aren't just prompts. Each brings:
 Built-ins: `playwright` (browser automation), `git-master` (atomic commits, rebase surgery), `frontend-ui-ux` (design-first UI).
 
 Add your own: `.opencode/skills/*/SKILL.md` or `~/.config/opencode/skills/*/SKILL.md`.
-
-**Want the full feature breakdown?** See the **[Features Documentation](docs/reference/features.md)** for agents, hooks, tools, MCPs, and everything else in detail.
-
----
-
-> **New to oh-my-opencode?** Read the **[Overview](docs/guide/overview.md)** to understand what you have, or check the **[Orchestration Guide](docs/guide/orchestration.md)** for how agents collaborate.
 
 ## Uninstallation
 
@@ -201,8 +137,6 @@ To remove oh-my-opencode:
 
 ## Features
 
-Features you'll think should've always existed. Once you use them, you can't go back.
-
 See full [Features Documentation](docs/reference/features.md).
 
 **Quick Overview:**
@@ -218,8 +152,6 @@ See full [Features Documentation](docs/reference/features.md).
 - **Model Setup**: Agent-model matching is built into the [Installation Guide](docs/guide/installation.md#step-5-understand-your-model-setup)
 
 ## Configuration
-
-Opinionated defaults, adjustable if you insist.
 
 See [Configuration Documentation](docs/reference/configuration.md).
 
