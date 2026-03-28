@@ -474,7 +474,6 @@ export function buildUltraworkSection(
   return lines.join("\n")
 }
 
-// Anti-duplication section for agent prompts
 export function buildAntiDuplicationSection(): string {
   return `<Anti_Duplication>
 ## Anti-Duplication Rule (CRITICAL)
