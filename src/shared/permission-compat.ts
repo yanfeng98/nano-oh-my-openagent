@@ -14,10 +14,6 @@ export function createAgentToolRestrictions(
   }
 }
 
-/**
- * Creates tool restrictions that ONLY allow specified tools.
- * All other tools are denied by default using `*: deny` pattern.
- */
 export function createAgentToolAllowlist(
   allowTools: string[]
 ): PermissionFormat {
