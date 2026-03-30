@@ -196,7 +196,6 @@ export async function fetchAvailableModels(
 				continue
 			}
 			for (const modelItem of modelIds) {
-				// Handle both string[] (legacy) and object[] (with metadata) formats
 				const modelId = typeof modelItem === 'string' 
 					? modelItem 
 					: modelItem?.id

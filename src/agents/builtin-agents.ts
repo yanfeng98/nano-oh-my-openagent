@@ -82,9 +82,6 @@ export async function createBuiltinAgents(
   const mergedConnectedProviders = Array.from(
     new Set([...(connectedProviders ?? []), ...providerModelsConnected])
   )
-  // IMPORTANT: Do NOT call OpenCode client APIs during plugin initialization.
-  // This function is called from config handler, and calling client API causes deadlock.
-  // See: https://github.com/code-yeongyu/oh-my-openagent/issues/1301
   const availableModels = await fetchAvailableModels(undefined, {
     connectedProviders: mergedConnectedProviders.length > 0 ? mergedConnectedProviders : undefined,
   })

@@ -36,10 +36,6 @@ function ensureCacheDir(): void {
 	}
 }
 
-/**
- * Read the connected providers cache.
- * Returns the list of connected provider IDs, or null if cache doesn't exist.
- */
 export function readConnectedProvidersCache(): string[] | null {
 	const cacheFile = getCacheFilePath(CONNECTED_PROVIDERS_CACHE_FILE)
 
@@ -87,10 +83,6 @@ function writeConnectedProvidersCache(connected: string[]): void {
 	}
 }
 
-/**
- * Read the provider-models cache.
- * Returns the cache data, or null if cache doesn't exist.
- */
 export function readProviderModelsCache(): ProviderModelsCache | null {
 	const cacheFile = getCacheFilePath(PROVIDER_MODELS_CACHE_FILE)
 
