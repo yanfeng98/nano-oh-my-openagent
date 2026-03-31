@@ -59,7 +59,6 @@ export function collectPendingBuiltinAgents(input: {
       ?? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentName.toLowerCase())?.[1]
     const requirement = AGENT_MODEL_REQUIREMENTS[agentName]
 
-    // Check if agent requires a specific model
     if (requirement?.requiresModel && availableModels) {
       if (!isModelAvailable(requirement.requiresModel, availableModels)) {
         continue

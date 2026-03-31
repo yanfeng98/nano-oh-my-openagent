@@ -39,16 +39,10 @@ const agentSources: Record<BuiltinAgentName, AgentSource> = {
   "multimodal-looker": createMultimodalLookerAgent,
   metis: createMetisAgent,
   momus: createMomusAgent,
-  // Note: Atlas is handled specially in createBuiltinAgents()
-  // because it needs OrchestratorContext, not just a model string
   atlas: createAtlasAgent as AgentFactory,
   "sisyphus-junior": createSisyphusJuniorAgentWithOverrides as unknown as AgentFactory,
 }
 
-/**
- * Metadata for each agent, used to build Sisyphus's dynamic prompt sections
- * (Delegation Table, Tool Selection, Key Triggers, etc.)
- */
 const agentMetadata: Partial<Record<BuiltinAgentName, AgentPromptMetadata>> = {
   oracle: ORACLE_PROMPT_METADATA,
   librarian: LIBRARIAN_PROMPT_METADATA,
@@ -99,7 +93,6 @@ export async function createBuiltinAgents(
 
   const availableSkills = buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills)
 
-  // Collect general agents first (for availableAgents), but don't add to result yet
   const { pendingAgentConfigs, availableAgents } = collectPendingBuiltinAgents({
     agentSources,
     agentMetadata,

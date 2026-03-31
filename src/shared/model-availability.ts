@@ -5,26 +5,6 @@ import { getOpenCodeCacheDir } from "./data-path"
 import * as connectedProvidersCache from "./connected-providers-cache"
 import { normalizeSDKResponse } from "./normalize-sdk-response"
 
-/**
- * Fuzzy match a target model name against available models
- * 
- * @param target - The model name or substring to search for (e.g., "gpt-5.4", "claude-opus")
- * @param available - Set of available model names in format "provider/model-name"
- * @param providers - Optional array of provider names to filter by (e.g., ["openai", "anthropic"])
- * @returns The matched model name or null if no match found
- * 
- * Matching priority:
- * 1. Exact match (if exists)
- * 2. Shorter model name (more specific)
- * 
- * Matching is case-insensitive substring match.
- * If providers array is given, only models starting with "provider/" are considered.
- * 
- * @example
- * const available = new Set(["openai/gpt-5.4", "openai/gpt-5.3-codex", "anthropic/claude-opus-4-6"])
- * fuzzyMatchModel("gpt-5.4", available) // → "openai/gpt-5.4"
- * fuzzyMatchModel("claude", available, ["openai"]) // → null (provider filter excludes anthropic)
- */
 function normalizeModelName(name: string): string {
 	return name
 		.toLowerCase()
@@ -45,7 +25,6 @@ export function fuzzyMatchModel(
 
 	const targetNormalized = normalizeModelName(target)
 
-	// Filter by providers if specified
 	let candidates = Array.from(available)
 	if (providers && providers.length > 0) {
 		const providerSet = new Set(providers)
@@ -61,7 +40,6 @@ export function fuzzyMatchModel(
 		return null
 	}
 
-	// Find all matches (case-insensitive substring match with normalization)
 	const matches = candidates.filter((model) =>
 		normalizeModelName(model).includes(targetNormalized),
 	)
@@ -73,16 +51,12 @@ export function fuzzyMatchModel(
 		return null
 	}
 
-	// Priority 1: Exact match (normalized full model string)
 	const exactMatch = matches.find((model) => normalizeModelName(model) === targetNormalized)
 	if (exactMatch) {
 		log("[fuzzyMatchModel] exact match found", { exactMatch })
 		return exactMatch
 	}
 
-	// Priority 2: Exact model ID match (part after provider/)
-	// This ensures "big-pickle" matches "zai-coding-plan/big-pickle" over "zai-coding-plan/glm-5"
-	// Use filter + shortest to handle multi-provider cases (e.g., openai/gpt-5.4 + opencode/gpt-5.4)
 	const exactModelIdMatches = matches.filter((model) => {
 		const modelId = model.split("/").slice(1).join("/")
 		return normalizeModelName(modelId) === targetNormalized
@@ -95,7 +69,6 @@ export function fuzzyMatchModel(
 		return result
 	}
 
-	// Priority 3: Shorter model name (more specific, fallback for partial matches)
 	const result = matches.reduce((shortest, current) =>
 		current.length < shortest.length ? current : shortest,
 	)
@@ -103,13 +76,6 @@ export function fuzzyMatchModel(
 	return result
 }
 
-/**
- * Check if a target model is available (fuzzy match by model name, no provider filtering)
- * 
- * @param targetModel - Model name to check (e.g., "gpt-5.3-codex")
- * @param availableModels - Set of available models in "provider/model" format
- * @returns true if model is available, false otherwise
- */
 export function isModelAvailable(
 	targetModel: string,
 	availableModels: Set<string>,
