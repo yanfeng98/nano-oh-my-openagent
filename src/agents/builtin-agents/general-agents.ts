@@ -82,7 +82,6 @@ export function collectPendingBuiltinAgents(input: {
 
     let config = buildAgent(source, model, mergedCategories, gitMasterConfig, browserProvider, disabledSkills)
 
-    // Apply resolved variant from model fallback chain
     if (resolvedVariant) {
       config = { ...config, variant: resolvedVariant }
     }

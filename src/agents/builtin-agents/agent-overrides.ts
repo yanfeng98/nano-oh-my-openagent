@@ -4,12 +4,6 @@ import type { CategoryConfig } from "../../config/schema"
 import { deepMerge, migrateAgentConfig } from "../../shared"
 import { resolvePromptAppend } from "./resolve-file-uri"
 
-/**
- * Expands a category reference from an agent override into concrete config properties.
- * Category properties are applied unconditionally (overwriting factory defaults),
- * because the user's chosen category should take priority over factory base values.
- * Direct override properties applied later via mergeAgentConfig() will supersede these.
- */
 export function applyCategoryOverride(
   config: AgentConfig,
   categoryName: string,
