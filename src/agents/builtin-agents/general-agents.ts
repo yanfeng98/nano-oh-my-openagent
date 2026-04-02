@@ -92,7 +92,6 @@ export function collectPendingBuiltinAgents(input: {
 
     config = applyOverrides(config, override, mergedCategories, directory)
 
-    // Store for later - will be added after sisyphus and hephaestus
     pendingAgentConfigs.set(name, config)
 
     const metadata = agentMetadata[agentName]

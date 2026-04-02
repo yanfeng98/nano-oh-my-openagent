@@ -165,7 +165,6 @@ export async function createBuiltinAgents(
     result["hephaestus"] = hephaestusConfig
   }
 
-  // Add pending agents after sisyphus and hephaestus to maintain order
   for (const [name, config] of pendingAgentConfigs) {
     result[name] = config
   }
