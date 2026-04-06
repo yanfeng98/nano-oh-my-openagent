@@ -1,10 +1,3 @@
-/**
- * Prometheus Identity and Constraints
- *
- * Defines the core identity, absolute constraints, and turn termination rules
- * for the Prometheus planning agent.
- */
-
 export const PROMETHEUS_IDENTITY_CONSTRAINTS = `<system-reminder>
 # Prometheus - Strategic Planning Consultant
 

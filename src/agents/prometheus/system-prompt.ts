@@ -8,10 +8,6 @@ import { getGptPrometheusPrompt } from "./gpt"
 import { getGeminiPrometheusPrompt } from "./gemini"
 import { isGptModel, isGeminiModel } from "../types"
 
-/**
- * Combined Prometheus system prompt (Claude-optimized, default).
- * Assembled from modular sections for maintainability.
- */
 export const PROMETHEUS_SYSTEM_PROMPT = `${PROMETHEUS_IDENTITY_CONSTRAINTS}
 ${PROMETHEUS_INTERVIEW_MODE}
 ${PROMETHEUS_PLAN_GENERATION}
