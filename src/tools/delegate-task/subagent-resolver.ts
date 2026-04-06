@@ -99,13 +99,19 @@ Create the work plan directly - that's your job as the planning agent.`,
     const agentConfigKey = getAgentConfigKey(agentToUse)
     const agentOverride = agentOverrides?.[agentConfigKey as keyof typeof agentOverrides]
       ?? (agentOverrides ? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentConfigKey)?.[1] : undefined)
+    const inheritedCategoryModel = agentOverride?.category
+      ? userCategories?.[agentOverride.category]?.model
+      : undefined
+    const inheritedCategoryVariant = agentOverride?.category
+      ? userCategories?.[agentOverride.category]?.variant
+      : undefined
     const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey]
     const normalizedAgentFallbackModels = normalizeFallbackModels(
       agentOverride?.fallback_models
       ?? (agentOverride?.category ? userCategories?.[agentOverride.category]?.fallback_models : undefined)
     )
 
-    if (agentOverride?.model || agentRequirement || matchedAgent.model) {
+    if (agentOverride?.model || inheritedCategoryModel || agentRequirement || matchedAgent.model) {
       const availableModels = await getAvailableModelsForDelegateTask(client)
 
       const normalizedMatchedModel = matchedAgent.model
@@ -116,7 +122,7 @@ Create the work plan directly - that's your job as the planning agent.`,
         : undefined
 
       const resolution = resolveModelForDelegateTask({
-        userModel: agentOverride?.model,
+        userModel: agentOverride?.model ?? inheritedCategoryModel,
         userFallbackModels: normalizedAgentFallbackModels,
         categoryDefaultModel: matchedAgentModelStr,
         fallbackChain: agentRequirement?.fallbackChain,
@@ -127,7 +133,7 @@ Create the work plan directly - that's your job as the planning agent.`,
       if (resolution) {
         const normalized = normalizeModelFormat(resolution.model)
         if (normalized) {
-          const variantToUse = agentOverride?.variant ?? resolution.variant
+          const variantToUse = agentOverride?.variant ?? inheritedCategoryVariant ?? resolution.variant
           categoryModel = variantToUse ? { ...normalized, variant: variantToUse } : normalized
         }
       }

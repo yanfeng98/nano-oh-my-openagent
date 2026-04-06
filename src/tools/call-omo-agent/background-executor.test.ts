@@ -65,6 +65,25 @@ describe("executeBackground", () => {
     expect(result).toContain("test-task-id")
   })
 
+  test("passes explicit model to background manager launch", async () => {
+    //#given
+    const model = { providerID: "opencodehuoshan", modelID: "deepseek-v3-2-251201", variant: "medium" }
+    launchMock.mockResolvedValueOnce({
+      id: "test-task-id",
+      sessionID: "sub-session",
+      description: "Test task",
+      agent: "test-agent",
+      status: "pending",
+    })
+
+    //#when
+    await executeBackground(testArgs, testContext, mockManager, mockClient, model)
+
+    //#then
+    const launchArgs = launchMock.mock.calls.at(-1)?.[0]
+    expect(launchArgs.model).toEqual(model)
+  })
+
   test("passes fallbackChain to background manager launch", async () => {
     //#given
     const fallbackChain = [
@@ -80,7 +99,7 @@ describe("executeBackground", () => {
     })
 
     //#when
-    await executeBackground(testArgs, testContext, mockManager, mockClient, fallbackChain)
+    await executeBackground(testArgs, testContext, mockManager, mockClient, undefined, fallbackChain)
 
     //#then
     const launchArgs = launchMock.mock.calls.at(-1)?.[0]

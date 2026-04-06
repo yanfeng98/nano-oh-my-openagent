@@ -6,6 +6,8 @@ type PromptAsyncInput = {
   path: { id: string }
   body: {
     agent: string
+    model?: { providerID: string; modelID: string }
+    variant?: string
     tools: Record<string, boolean>
     parts: Array<{ type: string; text: string }>
   }
@@ -110,6 +112,34 @@ describe("executeSync", () => {
     expect(promptInput?.body.parts).toEqual([{ type: "text", text: "find something" }])
   })
 
+  test("passes explicit model and variant to prompt body", async () => {
+    //#given
+    const executeSync = await importExecuteSync()
+    const deps = createDependencies()
+    const toolContext = createToolContext()
+    const recorder = createPromptAsyncRecorder()
+    const args = {
+      subagent_type: "explore",
+      description: "test task",
+      prompt: "find something",
+      run_in_background: false,
+    }
+
+    //#when
+    await executeSync(
+      args,
+      toolContext,
+      createContext(recorder.promptAsync) as never,
+      deps,
+      { providerID: "opencodehuoshan", modelID: "deepseek-v3-2-251201", variant: "medium" }
+    )
+
+    //#then
+    const promptInput = recorder.getCapturedInput()
+    expect(promptInput?.body.model).toEqual({ providerID: "opencodehuoshan", modelID: "deepseek-v3-2-251201" })
+    expect(promptInput?.body.variant).toBe("medium")
+  })
+
   test("returns processed response with task metadata footer", async () => {
     //#given
     const executeSync = await importExecuteSync()
@@ -191,6 +221,7 @@ describe("executeSync", () => {
       toolContext,
       createContext(recorder.promptAsync) as never,
       deps,
+      undefined,
       fallbackChain
     )
 
@@ -292,7 +323,7 @@ describe("executeSync", () => {
     }
 
     //#when
-    await executeSync(args, toolContext, ctx as any, deps, undefined, spawnReservation)
+    await executeSync(args, toolContext, ctx as any, deps, undefined, undefined, spawnReservation)
 
     //#then
     expect(spawnReservation.commit).toHaveBeenCalledTimes(1)

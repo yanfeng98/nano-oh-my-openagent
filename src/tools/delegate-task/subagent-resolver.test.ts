@@ -139,11 +139,11 @@ describe("resolveSubagentExecution", () => {
     cacheSpy.mockRestore()
   })
 
-  test("uses category fallback_models when agent override points at category", async () => {
+  test("inherits category model and variant when agent override points at category", async () => {
     //#given
     const cacheSpy = spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue({
-      models: { anthropic: ["claude-haiku-4-5"] },
-      connected: ["anthropic"],
+      models: { anthropic: ["claude-haiku-4-5"], opencodehuoshan: ["deepseek-v3-2-251201"] },
+      connected: ["anthropic", "opencodehuoshan"],
       updatedAt: "2026-03-03T00:00:00.000Z",
     })
     const args = createBaseArgs({ subagent_type: "explore" })
@@ -154,12 +154,13 @@ describe("resolveSubagentExecution", () => {
       {
         agentOverrides: {
           explore: {
-            category: "research",
+            category: "quick",
           },
         } as ExecutorContext["agentOverrides"],
         userCategories: {
-          research: {
-            fallback_models: ["anthropic/claude-haiku-4-5"],
+          quick: {
+            model: "opencodehuoshan/deepseek-v3-2-251201",
+            variant: "medium",
           },
         } as ExecutorContext["userCategories"],
       }
@@ -170,9 +171,47 @@ describe("resolveSubagentExecution", () => {
 
     //#then
     expect(result.error).toBeUndefined()
-    expect(result.fallbackChain).toEqual([
-      { providers: ["anthropic"], model: "claude-haiku-4-5", variant: undefined },
-    ])
+    expect(result.categoryModel).toEqual({
+      providerID: "opencodehuoshan",
+      modelID: "deepseek-v3-2-251201",
+      variant: "medium",
+    })
+    cacheSpy.mockRestore()
+  })
+
+  test("prefers explicit agent model over inherited category model", async () => {
+    //#given
+    const cacheSpy = spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue({
+      models: { openai: ["gpt-5.4"], opencodehuoshan: ["deepseek-v3-2-251201"] },
+      connected: ["openai", "opencodehuoshan"],
+      updatedAt: "2026-03-03T00:00:00.000Z",
+    })
+    const args = createBaseArgs({ subagent_type: "explore" })
+    const executorCtx = createExecutorContext(
+      async () => ([
+        { name: "explore", mode: "subagent", model: "quotio/claude-haiku-4-5" },
+      ]),
+      {
+        agentOverrides: {
+          explore: {
+            model: "openai/gpt-5.4",
+            category: "quick",
+          },
+        } as ExecutorContext["agentOverrides"],
+        userCategories: {
+          quick: {
+            model: "opencodehuoshan/deepseek-v3-2-251201",
+          },
+        } as ExecutorContext["userCategories"],
+      }
+    )
+
+    //#when
+    const result = await resolveSubagentExecution(args, executorCtx, "sisyphus", "deep")
+
+    //#then
+    expect(result.error).toBeUndefined()
+    expect(result.categoryModel).toEqual({ providerID: "openai", modelID: "gpt-5.4" })
     cacheSpy.mockRestore()
   })
 })

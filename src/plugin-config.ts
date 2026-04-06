@@ -156,10 +156,10 @@ export function mergeConfigs(
   };
 }
 
-export function loadPluginConfig(
-  directory: string,
-  ctx: unknown
-): OhMyOpenCodeConfig {
+export function getPluginConfigPaths(directory: string): {
+  userConfigPath: string
+  projectConfigPath: string
+} {
   const configDir = getOpenCodeConfigDir({ binary: "opencode" });
   const userBasePath = path.join(configDir, "oh-my-opencode");
   const userDetected = detectConfigFile(userBasePath);
@@ -175,6 +175,15 @@ export function loadPluginConfig(
       ? projectDetected.path
       : projectBasePath + ".json";
 
+  return { userConfigPath, projectConfigPath };
+}
+
+export function loadMergedPluginConfig(
+  directory: string,
+  ctx: unknown
+): OhMyOpenCodeConfig {
+  const { userConfigPath, projectConfigPath } = getPluginConfigPaths(directory)
+
   let config: OhMyOpenCodeConfig =
     loadConfigFromPath(userConfigPath, ctx) ?? {};
 
@@ -183,9 +192,16 @@ export function loadPluginConfig(
     config = mergeConfigs(config, projectConfig);
   }
 
-  config = {
+  return {
     ...config,
-  };
+  }
+}
+
+export function loadPluginConfig(
+  directory: string,
+  ctx: unknown
+): OhMyOpenCodeConfig {
+  const config = loadMergedPluginConfig(directory, ctx)
 
   log("Final merged config", {
     agents: config.agents,

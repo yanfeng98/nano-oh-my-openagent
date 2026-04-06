@@ -44,6 +44,7 @@ export async function executeSync(
   },
   ctx: PluginInput,
   deps: ExecuteSyncDeps = defaultDeps,
+  model?: { providerID: string; modelID: string; variant?: string },
   fallbackChain?: FallbackEntry[],
   spawnReservation?: SpawnReservation,
 ): Promise<string> {
@@ -82,6 +83,10 @@ export async function executeSync(
         path: { id: sessionID },
         body: {
           agent: args.subagent_type,
+          ...(model
+            ? { model: { providerID: model.providerID, modelID: model.modelID } }
+            : {}),
+          ...(model?.variant ? { variant: model.variant } : {}),
           tools: {
             ...getAgentToolRestrictions(args.subagent_type),
             task: false,

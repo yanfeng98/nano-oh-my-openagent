@@ -19,6 +19,7 @@ export async function executeBackground(
   },
   manager: BackgroundManager,
   client: PluginInput["client"],
+  model?: { providerID: string; modelID: string; variant?: string },
   fallbackChain?: FallbackEntry[],
 ): Promise<string> {
   try {
@@ -50,6 +51,7 @@ export async function executeBackground(
       parentMessageID: toolContext.messageID,
       parentAgent,
       parentTools: getSessionTools(toolContext.sessionID),
+      model,
       fallbackChain,
     })
 
