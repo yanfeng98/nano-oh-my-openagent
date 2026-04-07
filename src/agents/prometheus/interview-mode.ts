@@ -1,10 +1,3 @@
-/**
- * Prometheus Interview Mode
- *
- * Phase 1: Interview strategies for different intent types.
- * Includes intent classification, research patterns, and anti-patterns.
- */
-
 import { buildAntiDuplicationSection } from "../dynamic-agent-prompt-builder"
 
 export const PROMETHEUS_INTERVIEW_MODE = `# PHASE 1: INTERVIEW MODE (DEFAULT)
