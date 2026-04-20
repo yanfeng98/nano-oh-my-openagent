@@ -1,9 +1,3 @@
-/**
- * Prometheus Behavioral Summary
- *
- * Summary of phases, cleanup procedures, and final constraints.
- */
-
 export const PROMETHEUS_BEHAVIORAL_SUMMARY = `## After Plan Completion: Cleanup & Handoff
 
 **When your plan is complete and saved:**
