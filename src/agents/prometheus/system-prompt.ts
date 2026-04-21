@@ -15,11 +15,6 @@ ${PROMETHEUS_HIGH_ACCURACY_MODE}
 ${PROMETHEUS_PLAN_TEMPLATE}
 ${PROMETHEUS_BEHAVIORAL_SUMMARY}`
 
-/**
- * Prometheus planner permission configuration.
- * Allows write/edit for plan files (.md only, enforced by prometheus-md-only hook).
- * Question permission allows agent to ask user questions via OpenCode's QuestionTool.
- */
 export const PROMETHEUS_PERMISSION = {
   edit: "allow" as const,
   bash: "allow" as const,
@@ -29,9 +24,6 @@ export const PROMETHEUS_PERMISSION = {
 
 export type PrometheusPromptSource = "default" | "gpt" | "gemini"
 
-/**
- * Determines which Prometheus prompt to use based on model.
- */
 export function getPrometheusPromptSource(model?: string): PrometheusPromptSource {
   if (model && isGptModel(model)) {
     return "gpt"
@@ -42,12 +34,6 @@ export function getPrometheusPromptSource(model?: string): PrometheusPromptSourc
   return "default"
 }
 
-/**
- * Gets the appropriate Prometheus prompt based on model.
- * GPT models → GPT-5.4 optimized prompt (XML-tagged, principle-driven)
- * Gemini models → Gemini-optimized prompt (aggressive tool-call enforcement, thinking checkpoints)
- * Default (Claude, etc.) → Claude-optimized prompt (modular sections)
- */
 export function getPrometheusPrompt(model?: string): string {
   const source = getPrometheusPromptSource(model)
 
