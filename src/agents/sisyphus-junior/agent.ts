@@ -1,15 +1,3 @@
-/**
- * Sisyphus-Junior - Focused Task Executor
- *
- * Executes delegated tasks directly without spawning other agents.
- * Category-spawned executor with domain-specific configurations.
- *
- * Routing:
- * 1. GPT models (openai/*, github-copilot/gpt-*) -> gpt.ts (GPT-5.4 optimized)
- * 2. Gemini models (google/*, google-vertex/*) -> gemini.ts (Gemini-optimized)
- * 3. Default (Claude, etc.) -> default.ts (Claude-optimized)
- */
-
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { AgentMode } from "../types"
 import { isGptModel, isGeminiModel } from "../types"
