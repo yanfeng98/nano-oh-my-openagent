@@ -77,13 +77,9 @@ export function createSisyphusJuniorAgentWithOverrides(
   const baseRestrictions = createAgentToolRestrictions(BLOCKED_TOOLS)
 
   const userPermission = (override?.permission ?? {}) as Record<string, PermissionValue>
-  const basePermission = baseRestrictions.permission
   const merged: Record<string, PermissionValue> = { ...userPermission }
-  for (const tool of BLOCKED_TOOLS) {
-    merged[tool] = "deny"
-  }
   merged.call_omo_agent = "allow"
-  const toolsConfig = { permission: { ...merged, ...basePermission } }
+  const toolsConfig = { permission: { ...merged, ...baseRestrictions.permission } }
 
   const base: AgentConfig = {
     description: override?.description ??
