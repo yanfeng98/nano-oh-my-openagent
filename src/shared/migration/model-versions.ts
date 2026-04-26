@@ -1,10 +1,3 @@
-/**
- * Model version migration map: old full model strings → new full model strings.
- * Used to auto-upgrade hardcoded model versions in user configs when the plugin
- * bumps to newer model versions.
- *
- * Keys are full "provider/model" strings. Only openai and anthropic entries needed.
- */
 export const MODEL_VERSION_MAP: Record<string, string> = {
   "anthropic/claude-opus-4-5": "anthropic/claude-opus-4-6",
   "anthropic/claude-sonnet-4-5": "anthropic/claude-sonnet-4-6",
@@ -30,7 +23,6 @@ export function migrateModelVersions(
         const newModel = MODEL_VERSION_MAP[oldModel]
         const mKey = migrationKey(oldModel, newModel)
 
-        // Skip if this migration was already applied (user may have reverted)
         if (appliedMigrations?.has(mKey)) {
           migrated[key] = value
           continue

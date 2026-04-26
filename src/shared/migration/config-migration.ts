@@ -11,7 +11,6 @@ export function migrateConfigFile(
   const copy = structuredClone(rawConfig)
   let needsWrite = false
 
-  // Load previously applied migrations
   const existingMigrations = Array.isArray(copy._migrations)
     ? new Set(copy._migrations as string[])
     : new Set<string>()
@@ -25,7 +24,6 @@ export function migrateConfigFile(
     }
   }
 
-  // Migrate model versions in agents (skip already-applied migrations)
   if (copy.agents && typeof copy.agents === "object") {
     const { migrated, changed, newMigrations } = migrateModelVersions(
       copy.agents as Record<string, unknown>,
@@ -39,7 +37,6 @@ export function migrateConfigFile(
     allNewMigrations.push(...newMigrations)
   }
 
-  // Migrate model versions in categories (skip already-applied migrations)
   if (copy.categories && typeof copy.categories === "object") {
     const { migrated, changed, newMigrations } = migrateModelVersions(
       copy.categories as Record<string, unknown>,
@@ -53,7 +50,6 @@ export function migrateConfigFile(
     allNewMigrations.push(...newMigrations)
   }
 
-  // Record newly applied migrations
   if (allNewMigrations.length > 0) {
     const updatedMigrations = Array.from(existingMigrations)
     updatedMigrations.push(...allNewMigrations)
