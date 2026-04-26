@@ -14,9 +14,6 @@ import { buildGpt53CodexSisyphusJuniorPrompt } from "./gpt-5-3-codex"
 import { buildGeminiSisyphusJuniorPrompt } from "./gemini"
 
 const MODE: AgentMode = "subagent"
-
-// Core tools that Sisyphus-Junior must NEVER have access to
-// Note: call_omo_agent is ALLOWED so subagents can spawn explore/librarian
 const BLOCKED_TOOLS = ["task"]
 
 export const SISYPHUS_JUNIOR_DEFAULTS = {
@@ -39,9 +36,6 @@ export function getSisyphusJuniorPromptSource(model?: string): SisyphusJuniorPro
   return "default"
 }
 
-/**
- * Builds the appropriate Sisyphus-Junior prompt based on model.
- */
 export function buildSisyphusJuniorPrompt(
   model: string | undefined,
   useTaskSystem: boolean,
