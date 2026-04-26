@@ -1,37 +1,24 @@
 export const AGENT_NAME_MAP: Record<string, string> = {
-  // Sisyphus variants → "sisyphus"
   omo: "sisyphus",
-  OmO: "sisyphus",
-  Sisyphus: "sisyphus",
   sisyphus: "sisyphus",
 
-  // Prometheus variants → "prometheus"
-  "OmO-Plan": "prometheus",
   "omo-plan": "prometheus",
-  "Planner-Sisyphus": "prometheus",
   "planner-sisyphus": "prometheus",
-  "Prometheus (Planner)": "prometheus",
+  "prometheus (planner)": "prometheus",
   prometheus: "prometheus",
 
-  // Atlas variants → "atlas"
   "orchestrator-sisyphus": "atlas",
-  Atlas: "atlas",
   atlas: "atlas",
 
-  // Metis variants → "metis"
   "plan-consultant": "metis",
-  "Metis (Plan Consultant)": "metis",
+  "metis (plan consultant)": "metis",
   metis: "metis",
 
-  // Momus variants → "momus"
-  "Momus (Plan Reviewer)": "momus",
+  "momus (plan reviewer)": "momus",
   momus: "momus",
 
-  // Sisyphus-Junior → "sisyphus-junior"
-  "Sisyphus-Junior": "sisyphus-junior",
   "sisyphus-junior": "sisyphus-junior",
 
-  // Already lowercase - passthrough
   build: "build",
   oracle: "oracle",
   librarian: "librarian",
@@ -40,16 +27,17 @@ export const AGENT_NAME_MAP: Record<string, string> = {
 }
 
 export const BUILTIN_AGENT_NAMES = new Set([
-  "sisyphus", // was "Sisyphus"
+  "sisyphus",
   "oracle",
   "librarian",
   "explore",
   "multimodal-looker",
-  "metis", // was "Metis (Plan Consultant)"
-  "momus", // was "Momus (Plan Reviewer)"
-  "prometheus", // was "Prometheus (Planner)"
-  "atlas", // was "Atlas"
+  "metis",
+  "momus",
+  "prometheus",
+  "atlas",
   "build",
+  "sisyphus-junior",
 ])
 
 export function migrateAgentNames(
@@ -59,7 +47,7 @@ export function migrateAgentNames(
   let changed = false
 
   for (const [key, value] of Object.entries(agents)) {
-    const newKey = AGENT_NAME_MAP[key.toLowerCase()] ?? AGENT_NAME_MAP[key] ?? key
+    const newKey = AGENT_NAME_MAP[key.toLowerCase()] ?? key
     if (newKey !== key) {
       changed = true
     }

@@ -85,7 +85,7 @@ export function migrateConfigFile(
     const migrated: string[] = []
     let changed = false
     for (const agent of copy.disabled_agents as string[]) {
-      const newAgent = AGENT_NAME_MAP[agent.toLowerCase()] ?? AGENT_NAME_MAP[agent] ?? agent
+      const newAgent = AGENT_NAME_MAP[agent.toLowerCase()] ?? agent
       if (newAgent !== agent) {
         changed = true
       }
