@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { AnyMcpNameSchema } from "../../mcp/types"
-import { BuiltinAgentNameSchema, BuiltinSkillNameSchema } from "./agent-names"
+import { BuiltinSkillNameSchema } from "./agent-names"
 import { AgentOverridesSchema } from "./agent-overrides"
 import { BabysittingConfigSchema } from "./babysitting"
 import { BackgroundTaskConfigSchema } from "./background-task"
@@ -24,20 +24,15 @@ import { WebsearchConfigSchema } from "./websearch"
 
 export const OhMyOpenCodeConfigSchema = z.object({
   $schema: z.string().optional(),
-  /** Enable new task system (default: false) */
   new_task_system_enabled: z.boolean().optional(),
-  /** Default agent name for `oh-my-opencode run` (env: OPENCODE_DEFAULT_AGENT) */
   default_run_agent: z.string().optional(),
   disabled_mcps: z.array(AnyMcpNameSchema).optional(),
   disabled_agents: z.array(z.string()).optional(),
   disabled_skills: z.array(BuiltinSkillNameSchema).optional(),
   disabled_hooks: z.array(HookNameSchema).optional(),
   disabled_commands: z.array(BuiltinCommandNameSchema).optional(),
-  /** Disable specific tools by name (e.g., ["todowrite", "todoread"]) */
   disabled_tools: z.array(z.string()).optional(),
-  /** Enable hashline_edit tool/hook integrations (default: false) */
   hashline_edit: z.boolean().optional(),
-  /** Enable model fallback on API errors (default: false). Set to true to enable automatic model switching when model errors occur. */
   model_fallback: z.boolean().optional(),
   agents: AgentOverridesSchema.optional(),
   categories: CategoriesConfigSchema.optional(),
@@ -48,11 +43,6 @@ export const OhMyOpenCodeConfigSchema = z.object({
   auto_update: z.boolean().optional(),
   skills: SkillsConfigSchema.optional(),
   ralph_loop: RalphLoopConfigSchema.optional(),
-  /**
-   * Enable runtime fallback (default: false)
-   * Set to false to disable, or use object for advanced config:
-   * { "enabled": true, "retry_on_errors": [400, 429], "timeout_seconds": 30 }
-   */
   runtime_fallback: z.union([z.boolean(), RuntimeFallbackConfigSchema]).optional(),
   background_task: BackgroundTaskConfigSchema.optional(),
   notification: NotificationConfigSchema.optional(),
