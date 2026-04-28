@@ -1,11 +1,11 @@
 import { z } from "zod"
 
 export const TmuxLayoutSchema = z.enum([
-  "main-horizontal", // main pane top, agent panes bottom stack
-  "main-vertical", // main pane left, agent panes right stack (default)
-  "tiled", // all panes same size grid
-  "even-horizontal", // all panes horizontal row
-  "even-vertical", // all panes vertical stack
+  "main-horizontal",
+  "main-vertical",
+  "tiled",
+  "even-horizontal",
+  "even-vertical",
 ])
 
 export const TmuxConfigSchema = z.object({

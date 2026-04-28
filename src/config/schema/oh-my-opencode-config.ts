@@ -53,7 +53,6 @@ export const OhMyOpenCodeConfigSchema = z.object({
   tmux: TmuxConfigSchema.optional(),
   sisyphus: SisyphusConfigSchema.optional(),
   start_work: StartWorkConfigSchema.optional(),
-  /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */
   _migrations: z.array(z.string()).optional(),
 })
 

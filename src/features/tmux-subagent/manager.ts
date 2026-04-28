@@ -41,18 +41,6 @@ const DEFERRED_SESSION_TTL_MS = 5 * 60 * 1000
 const MAX_DEFERRED_QUEUE_SIZE = 20
 const MAX_CLOSE_RETRY_COUNT = 3
 
-/**
- * State-first Tmux Session Manager
- * 
- * Architecture:
- * 1. QUERY: Get actual tmux pane state (source of truth)
- * 2. DECIDE: Pure function determines actions based on state
- * 3. EXECUTE: Execute actions with verification
- * 4. UPDATE: Update internal cache only after tmux confirms success
- * 
- * The internal `sessions` Map is just a cache for sessionId<->paneId mapping.
- * The REAL source of truth is always queried from tmux.
- */
 export class TmuxSessionManager {
   private client: OpencodeClient
   private tmuxConfig: TmuxConfig
