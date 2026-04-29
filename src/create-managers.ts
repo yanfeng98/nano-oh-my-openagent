@@ -33,10 +33,10 @@ export function createManagers(args: {
     pluginConfig.background_task,
     {
       tmuxConfig,
-		onSubagentSessionCreated: async (event: SubagentSessionCreatedEvent) => {
-			log("[index] onSubagentSessionCreated callback received", {
-				sessionID: event.sessionID,
-				parentID: event.parentID,
+		  onSubagentSessionCreated: async (event: SubagentSessionCreatedEvent) => {
+			  log("[index] onSubagentSessionCreated callback received", {
+				  sessionID: event.sessionID,
+				  parentID: event.parentID,
           title: event.title,
         })
 

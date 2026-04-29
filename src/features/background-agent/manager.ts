@@ -106,7 +106,7 @@ export class BackgroundManager {
   private tasks: Map<string, BackgroundTask>
   private notifications: Map<string, BackgroundTask[]>
   private pendingNotifications: Map<string, string[]>
-  private pendingByParent: Map<string, Set<string>>  // Track pending tasks per parent for batching
+  private pendingByParent: Map<string, Set<string>>
   private client: OpencodeClient
   private directory: string
   private pollingInterval?: ReturnType<typeof setInterval>

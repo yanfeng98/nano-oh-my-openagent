@@ -17,11 +17,6 @@ export interface SkillMcpServerContext {
   skillName: string
 }
 
-/**
- * Connection type for a managed MCP client.
- * - "stdio": Local process via stdin/stdout
- * - "http": Remote server via HTTP (Streamable HTTP transport)
- */
 export type ConnectionType = "stdio" | "http"
 
 export interface ManagedClientBase {

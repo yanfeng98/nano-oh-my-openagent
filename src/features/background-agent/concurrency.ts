@@ -1,11 +1,5 @@
 import type { BackgroundTaskConfig } from "../../config/schema"
 
-/**
- * Queue entry with settled-flag pattern to prevent double-resolution.
- *
- * The settled flag ensures that cancelWaiters() doesn't reject
- * an entry that was already resolved by release().
- */
 interface QueueEntry {
   resolve: () => void
   rawReject: (error: Error) => void

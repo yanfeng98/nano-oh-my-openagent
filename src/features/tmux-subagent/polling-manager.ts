@@ -24,7 +24,7 @@ export class TmuxPollingManager {
 
     this.pollInterval = setInterval(
       () => this.pollSessions(),
-      POLL_INTERVAL_BACKGROUND_MS, // POLL_INTERVAL_BACKGROUND_MS
+      POLL_INTERVAL_BACKGROUND_MS,
     )
     log("[tmux-session-manager] polling started")
   }
