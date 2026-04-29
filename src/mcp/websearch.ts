@@ -40,5 +40,4 @@ export function createWebsearchConfig(config?: WebsearchConfig): RemoteMcpConfig
   }
 }
 
-// Backward compatibility: export static instance using default config
 export const websearch = createWebsearchConfig()

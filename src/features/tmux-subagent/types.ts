@@ -6,7 +6,6 @@ export interface TrackedSession {
   lastSeenAt: Date
   closePending: boolean
   closeRetryCount: number
-  // Stability detection fields (prevents premature closure)
   lastMessageCount?: number
   stableIdlePolls?: number
 }
