@@ -463,12 +463,12 @@ export class TmuxSessionManager {
           return
         }
 
-      log("[tmux-session-manager] window state queried", {
-        windowWidth: state.windowWidth,
-        mainPane: state.mainPane?.paneId,
-        agentPaneCount: state.agentPanes.length,
-        agentPanes: state.agentPanes.map((p) => p.paneId),
-      })
+        log("[tmux-session-manager] window state queried", {
+          windowWidth: state.windowWidth,
+          mainPane: state.mainPane?.paneId,
+          agentPaneCount: state.agentPanes.length,
+          agentPanes: state.agentPanes.map((p) => p.paneId),
+        })
 
         const decision = decideSpawnActions(
           state,
@@ -478,16 +478,16 @@ export class TmuxSessionManager {
           this.getSessionMappings()
         )
 
-      log("[tmux-session-manager] spawn decision", {
-        canSpawn: decision.canSpawn,
-        reason: decision.reason,
-        actionCount: decision.actions.length,
-        actions: decision.actions.map((a) => {
-          if (a.type === "close") return { type: "close", paneId: a.paneId }
-          if (a.type === "replace") return { type: "replace", paneId: a.paneId, newSessionId: a.newSessionId }
-          return { type: "spawn", sessionId: a.sessionId }
-        }),
-      })
+        log("[tmux-session-manager] spawn decision", {
+          canSpawn: decision.canSpawn,
+          reason: decision.reason,
+          actionCount: decision.actions.length,
+          actions: decision.actions.map((a) => {
+            if (a.type === "close") return { type: "close", paneId: a.paneId }
+            if (a.type === "replace") return { type: "replace", paneId: a.paneId, newSessionId: a.newSessionId }
+            return { type: "spawn", sessionId: a.sessionId }
+          }),
+        })
 
         if (!decision.canSpawn) {
           log("[tmux-session-manager] cannot spawn", { reason: decision.reason })

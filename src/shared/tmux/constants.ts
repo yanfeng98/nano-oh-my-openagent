@@ -1,7 +1,5 @@
 export const POLL_INTERVAL_BACKGROUND_MS = 2000
-
-// Maximum idle time before session considered stale
-export const SESSION_TIMEOUT_MS = 10 * 60 * 1000  // 10 minutes
+export const SESSION_TIMEOUT_MS = 10 * 60 * 1000
 export const SESSION_MISSING_GRACE_MS = 6000
 
 // Session readiness polling config
