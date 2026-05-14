@@ -34,17 +34,16 @@ export function applyProviderConfig(params: {
     | Record<string, ProviderConfig>
     | undefined;
 
-  const anthropicBeta = providers?.anthropic?.options?.headers?.["anthropic-beta"];
+  if (!providers) return;
+
+  const anthropicBeta = providers.anthropic?.options?.headers?.["anthropic-beta"];
   params.modelCacheState.anthropicContext1MEnabled =
     anthropicBeta?.includes("context-1m") ?? false;
 
-  const visionCapableModelsCache = params.modelCacheState.visionCapableModelsCache
-    ?? new Map<string, VisionCapableModel>()
-  params.modelCacheState.visionCapableModelsCache = visionCapableModelsCache
-  visionCapableModelsCache.clear()
-  setVisionCapableModelsCache(visionCapableModelsCache)
+  const visionCapableModelsCache = new Map<string, VisionCapableModel>();
+  setVisionCapableModelsCache(visionCapableModelsCache);
 
-  if (!providers) return;
+  params.modelCacheState.modelContextLimitsCache.clear();
 
   for (const [providerID, providerConfig] of Object.entries(providers)) {
     const models = providerConfig?.models;
@@ -55,7 +54,7 @@ export function applyProviderConfig(params: {
         visionCapableModelsCache.set(
           `${providerID}/${modelID}`,
           { providerID, modelID },
-        )
+        );
       }
 
       const contextLimit = modelConfig?.limit?.context;

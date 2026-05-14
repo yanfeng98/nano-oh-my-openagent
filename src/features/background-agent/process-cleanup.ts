@@ -70,7 +70,6 @@ export function unregisterManagerForCleanup(manager: CleanupTarget): void {
   cleanupRegistered = false
 }
 
-/** @internal — test-only reset for module-level singleton state */
 export function _resetForTesting(): void {
   for (const manager of [...cleanupManagers]) {
     cleanupManagers.delete(manager)
