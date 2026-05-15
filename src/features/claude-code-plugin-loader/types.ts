@@ -208,12 +208,8 @@ export interface PluginLoadError {
   error: string
 }
 
-/**
- * Claude settings from ~/.claude/settings.json
- */
 export interface ClaudeSettings {
   enabledPlugins?: Record<string, boolean>
-  // Other settings we don't use
   [key: string]: unknown
 }
 
