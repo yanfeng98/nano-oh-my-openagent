@@ -3,13 +3,7 @@ import { join } from "path"
 import { log } from "./logger"
 import * as dataPath from "./data-path"
 
-const CONNECTED_PROVIDERS_CACHE_FILE = "connected-providers.json"
 const PROVIDER_MODELS_CACHE_FILE = "provider-models.json"
-
-interface ConnectedProvidersCache {
-	connected: string[]
-	updatedAt: string
-}
 
 interface ModelMetadata {
 	id: string
@@ -37,50 +31,16 @@ function ensureCacheDir(): void {
 }
 
 export function readConnectedProvidersCache(): string[] | null {
-	const cacheFile = getCacheFilePath(CONNECTED_PROVIDERS_CACHE_FILE)
-
-	if (!existsSync(cacheFile)) {
-		log("[connected-providers-cache] Cache file not found", { cacheFile })
-		return null
-	}
-
-	try {
-		const content = readFileSync(cacheFile, "utf-8")
-		const data = JSON.parse(content) as ConnectedProvidersCache
-		log("[connected-providers-cache] Read cache", { count: data.connected.length, updatedAt: data.updatedAt })
-		return data.connected
-	} catch (err) {
-		log("[connected-providers-cache] Error reading cache", { error: String(err) })
-		return null
-	}
+	const data = readProviderModelsCache()
+	if (!data) return null
+	return data.connected
 }
 
 /**
  * Check if connected providers cache exists.
  */
 export function hasConnectedProvidersCache(): boolean {
-	const cacheFile = getCacheFilePath(CONNECTED_PROVIDERS_CACHE_FILE)
-	return existsSync(cacheFile)
-}
-
-/**
- * Write the connected providers cache.
- */
-function writeConnectedProvidersCache(connected: string[]): void {
-	ensureCacheDir()
-	const cacheFile = getCacheFilePath(CONNECTED_PROVIDERS_CACHE_FILE)
-
-	const data: ConnectedProvidersCache = {
-		connected,
-		updatedAt: new Date().toISOString(),
-	}
-
-	try {
-		writeFileSync(cacheFile, JSON.stringify(data, null, 2))
-		log("[connected-providers-cache] Cache written", { count: connected.length })
-	} catch (err) {
-		log("[connected-providers-cache] Error writing cache", { error: String(err) })
-	}
+	return hasProviderModelsCache()
 }
 
 export function readProviderModelsCache(): ProviderModelsCache | null {
@@ -158,9 +118,6 @@ export async function updateConnectedProvidersCache(client: {
 		const result = await client.provider.list()
 		const connected = result.data?.connected ?? []
 		log("[connected-providers-cache] Fetched connected providers", { count: connected.length, providers: connected })
-
-		writeConnectedProvidersCache(connected)
-
 		const modelsByProvider: Record<string, string[]> = {}
 		const allProviders = result.data?.all ?? []
 

@@ -2,7 +2,7 @@ import type { FallbackEntry } from "../../shared/model-requirements"
 import { normalizeModel } from "../../shared/model-normalization"
 import { fuzzyMatchModel } from "../../shared/model-availability"
 import { transformModelForProvider } from "../../shared/provider-model-id-transform"
-import { hasConnectedProvidersCache, hasProviderModelsCache } from "../../shared/connected-providers-cache"
+import { hasProviderModelsCache } from "../../shared/connected-providers-cache"
 
 function isExplicitHighModel(model: string): boolean {
   return /(?:^|\/)[^/]+-high$/.test(model)
@@ -28,7 +28,7 @@ export function resolveModelForDelegateTask(input: {
 
   // Before provider cache is created (first run), skip model resolution entirely.
   // OpenCode will use its system default model when no model is specified in the prompt.
-  if (input.availableModels.size === 0 && !hasProviderModelsCache() && !hasConnectedProvidersCache()) {
+  if (input.availableModels.size === 0 && !hasProviderModelsCache()) {
     return undefined
   }
 

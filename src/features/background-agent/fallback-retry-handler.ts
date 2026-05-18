@@ -2,7 +2,7 @@ import type { BackgroundTask, LaunchInput } from "./types"
 import type { FallbackEntry } from "../../shared/model-requirements"
 import type { ConcurrencyManager } from "./concurrency"
 import type { OpencodeClient, QueueItem } from "./constants"
-import { log, readConnectedProvidersCache, readProviderModelsCache } from "../../shared"
+import { log, readConnectedProvidersCache } from "../../shared"
 import {
   shouldRetryError,
   getNextFallback,
@@ -32,8 +32,7 @@ export function tryFallbackRetry(args: {
   if (!canRetry) return false
 
   const attemptCount = task.attemptCount ?? 0
-  const providerModelsCache = readProviderModelsCache()
-  const connectedProviders = providerModelsCache?.connected ?? readConnectedProvidersCache()
+  const connectedProviders = readConnectedProvidersCache()
   const connectedSet = connectedProviders ? new Set(connectedProviders.map(p => p.toLowerCase())) : null
 
   const isReachable = (entry: FallbackEntry): boolean => {

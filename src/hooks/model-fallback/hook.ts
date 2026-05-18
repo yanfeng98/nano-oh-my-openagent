@@ -1,7 +1,7 @@
 import type { FallbackEntry } from "../../shared/model-requirements"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
-import { readConnectedProvidersCache, readProviderModelsCache } from "../../shared/connected-providers-cache"
+import { readConnectedProvidersCache } from "../../shared/connected-providers-cache"
 import { selectFallbackProvider } from "../../shared/model-error-classifier"
 import { transformModelForProvider } from "../../shared/provider-model-id-transform"
 import { log } from "../../shared/logger"
@@ -128,8 +128,7 @@ export function getNextFallback(
 
   const { fallbackChain } = state
 
-  const providerModelsCache = readProviderModelsCache()
-  const connectedProviders = providerModelsCache?.connected ?? readConnectedProvidersCache()
+  const connectedProviders = readConnectedProvidersCache()
   const connectedSet = connectedProviders ? new Set(connectedProviders) : null
 
   const isReachable = (entry: FallbackEntry): boolean => {

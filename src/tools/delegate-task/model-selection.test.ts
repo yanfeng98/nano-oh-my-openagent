@@ -4,7 +4,6 @@ import { resolveModelForDelegateTask } from "./model-selection"
 import * as connectedProvidersCache from "../../shared/connected-providers-cache"
 
 describe("resolveModelForDelegateTask", () => {
-	let hasConnectedProvidersSpy: ReturnType<typeof spyOn> | undefined
 	let hasProviderModelsSpy: ReturnType<typeof spyOn> | undefined
 
 	beforeEach(() => {
@@ -12,13 +11,11 @@ describe("resolveModelForDelegateTask", () => {
 	})
 
 	afterEach(() => {
-		hasConnectedProvidersSpy?.mockRestore()
 		hasProviderModelsSpy?.mockRestore()
 	})
 
 	describe("#given no provider cache exists (pre-cache scenario)", () => {
 		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(false)
 			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(false)
 		})
 
@@ -71,7 +68,6 @@ describe("resolveModelForDelegateTask", () => {
 
 	describe("#given provider cache exists", () => {
 		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
 			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(true)
 		})
 
@@ -103,27 +99,6 @@ describe("resolveModelForDelegateTask", () => {
 
 				expect(result).toBeDefined()
 				expect(result!.model).toBe("anthropic/claude-sonnet-4-6")
-			})
-		})
-	})
-
-	describe("#given only connected providers cache exists (no provider-models cache)", () => {
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(false)
-		})
-
-		describe("#when availableModels is empty", () => {
-			test("#then falls through to existing resolution (cache partially ready)", () => {
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4-6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
-					availableModels: new Set(),
-				})
-
-				expect(result).toBeDefined()
 			})
 		})
 	})

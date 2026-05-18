@@ -3,7 +3,6 @@ import { describe, test, expect, mock, beforeEach } from "bun:test"
 mock.module("../../shared", () => ({
   log: mock(() => {}),
   readConnectedProvidersCache: mock(() => null),
-  readProviderModelsCache: mock(() => null),
 }))
 
 mock.module("../../shared/model-error-classifier", () => ({

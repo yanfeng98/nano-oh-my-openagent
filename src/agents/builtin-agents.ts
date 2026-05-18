@@ -17,7 +17,6 @@ import type { AvailableCategory } from "./dynamic-agent-prompt-builder"
 import {
   fetchAvailableModels,
   readConnectedProvidersCache,
-  readProviderModelsCache,
 } from "../shared"
 import { CATEGORY_DESCRIPTIONS } from "../tools/delegate-task/constants"
 import { mergeCategories } from "../shared/merge-categories"
@@ -69,18 +68,12 @@ export async function createBuiltinAgents(
   disableOmoEnv = false
 ): Promise<Record<string, AgentConfig>> {
 
-  const connectedProviders = readConnectedProvidersCache()
-  const providerModelsConnected = connectedProviders
-    ? (readProviderModelsCache()?.connected ?? [])
-    : []
-  const mergedConnectedProviders = Array.from(
-    new Set([...(connectedProviders ?? []), ...providerModelsConnected])
-  )
+  const connectedProviders = readConnectedProvidersCache() ?? []
   const availableModels = await fetchAvailableModels(undefined, {
-    connectedProviders: mergedConnectedProviders.length > 0 ? mergedConnectedProviders : undefined,
+    connectedProviders: connectedProviders.length > 0 ? connectedProviders : undefined,
   })
   const isFirstRunNoCache =
-    availableModels.size === 0 && mergedConnectedProviders.length === 0
+    availableModels.size === 0 && connectedProviders.length === 0
 
   const result: Record<string, AgentConfig> = {}
 

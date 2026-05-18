@@ -2,7 +2,6 @@ declare const require: (name: string) => any
 const { beforeEach, describe, expect, mock, test } = require("bun:test")
 
 const readConnectedProvidersCacheMock = mock(() => null)
-const readProviderModelsCacheMock = mock(() => null)
 const transformModelForProviderMock = mock((provider: string, model: string) => {
   if (provider === "github-copilot") {
     return model
@@ -24,7 +23,6 @@ const transformModelForProviderMock = mock((provider: string, model: string) => 
 
 mock.module("../../shared/connected-providers-cache", () => ({
   readConnectedProvidersCache: readConnectedProvidersCacheMock,
-  readProviderModelsCache: readProviderModelsCacheMock,
 }))
 
 mock.module("../../shared/provider-model-id-transform", () => ({
@@ -41,9 +39,7 @@ import {
 describe("model fallback hook", () => {
   beforeEach(() => {
     readConnectedProvidersCacheMock.mockReturnValue(null)
-    readProviderModelsCacheMock.mockReturnValue(null)
     readConnectedProvidersCacheMock.mockClear()
-    readProviderModelsCacheMock.mockClear()
 
     clearPendingModelFallback("ses_model_fallback_main")
     clearPendingModelFallback("ses_model_fallback_ghcp")
