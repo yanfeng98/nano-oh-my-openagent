@@ -4,7 +4,6 @@ import { DEFAULT_CATEGORIES, CATEGORY_PROMPT_APPENDS, CATEGORY_DESCRIPTIONS, isP
 import { resolveCategoryConfig } from "./tools"
 import type { CategoryConfig } from "../../config/schema"
 import type { DelegateTaskArgs } from "./types"
-import { __resetModelCache } from "../../shared/model-availability"
 import { clearSkillCache } from "../../features/opencode-skill-loader/skill-content"
 import { __setTimingConfig, __resetTimingConfig } from "./timing"
 import * as connectedProvidersCache from "../../shared/connected-providers-cache"
@@ -37,7 +36,6 @@ describe("sisyphus-task", () => {
 
   beforeEach(() => {
     mock.restore()
-    __resetModelCache()
     clearSkillCache()
     __setTimingConfig({
       POLL_INTERVAL_MS: 10,

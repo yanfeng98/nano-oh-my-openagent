@@ -16,144 +16,97 @@ export function fuzzyMatchModel(
 	available: Set<string>,
 	providers?: string[],
 ): string | null {
-	log("[fuzzyMatchModel] called", { target, availableCount: available.size, providers })
-
-	if (available.size === 0) {
-		log("[fuzzyMatchModel] empty available set")
-		return null
-	}
+	if (available.size === 0) return null
 
 	const targetNormalized = normalizeModelName(target)
 
 	let candidates = Array.from(available)
 	if (providers && providers.length > 0) {
 		const providerSet = new Set(providers)
-		candidates = candidates.filter((model) => {
-			const [provider] = model.split("/")
-			return providerSet.has(provider)
-		})
-		log("[fuzzyMatchModel] filtered by providers", { candidateCount: candidates.length, candidates: candidates.slice(0, 10) })
+		candidates = candidates.filter((model) => providerSet.has(model.split("/")[0]))
 	}
-
-	if (candidates.length === 0) {
-		log("[fuzzyMatchModel] no candidates after filter")
-		return null
-	}
+	if (candidates.length === 0) return null
 
 	const matches = candidates.filter((model) =>
 		normalizeModelName(model).includes(targetNormalized),
 	)
-
-	log("[fuzzyMatchModel] substring matches", { targetNormalized, matchCount: matches.length, matches })
-
 	if (matches.length === 0) {
-		log("[fuzzyMatchModel] WARNING: no match found", { target, availableCount: available.size, providers })
+		log("[fuzzyMatchModel] no match", { target, providers })
 		return null
 	}
 
 	const exactMatch = matches.find((model) => normalizeModelName(model) === targetNormalized)
-	if (exactMatch) {
-		log("[fuzzyMatchModel] exact match found", { exactMatch })
-		return exactMatch
-	}
+	if (exactMatch) return exactMatch
 
 	const exactModelIdMatches = matches.filter((model) => {
 		const modelId = model.split("/").slice(1).join("/")
 		return normalizeModelName(modelId) === targetNormalized
 	})
 	if (exactModelIdMatches.length > 0) {
-		const result = exactModelIdMatches.reduce((shortest, current) =>
-			current.length < shortest.length ? current : shortest,
-		)
-		log("[fuzzyMatchModel] exact model ID match found", { result, candidateCount: exactModelIdMatches.length })
-		return result
+		return exactModelIdMatches.reduce((a, b) => (a.length < b.length ? a : b))
 	}
 
-	const result = matches.reduce((shortest, current) =>
-		current.length < shortest.length ? current : shortest,
-	)
-	log("[fuzzyMatchModel] shortest match", { result })
-	return result
+	return matches.reduce((a, b) => (a.length < b.length ? a : b))
 }
 
-export function isModelAvailable(
-	targetModel: string,
-	availableModels: Set<string>,
-): boolean {
-	return fuzzyMatchModel(targetModel, availableModels) !== null
+function collectModels(
+	providerModels: Record<string, string[]>,
+	connectedSet: Set<string>,
+): Set<string> {
+	const modelSet = new Set<string>()
+	for (const [providerId, modelIds] of Object.entries(providerModels)) {
+		if (connectedSet.size > 0 && !connectedSet.has(providerId)) continue
+		for (const modelId of modelIds) {
+			modelSet.add(`${providerId}/${modelId}`)
+		}
+	}
+	return modelSet
 }
 
 export async function fetchAvailableModels(client?: any): Promise<Set<string>> {
 	const cache = connectedProvidersCache.readProviderModelsCache()
 	const connectedSet = new Set(cache?.connected ?? [])
-	const modelSet = new Set<string>()
 
-	log("[fetchAvailableModels] CALLED", {
-		hasCache: cache !== null,
-		connectedCount: connectedSet.size,
-	})
+	log("[fetchAvailableModels]", { hasCache: cache !== null, connectedCount: connectedSet.size })
 
-	// Level 1: provider-models cache (self-contained: has both connected + models)
+	// Level 1: provider-models cache
 	if (cache && Object.keys(cache.models).length > 0) {
-		log("[fetchAvailableModels] using provider-models cache (whitelist-filtered)")
-
-		const modelsByProvider = cache.models as Record<string, Array<string | { id?: string }>>
-		for (const [providerId, modelIds] of Object.entries(modelsByProvider)) {
-			if (!connectedSet.has(providerId)) continue
-			for (const modelItem of modelIds) {
-				const modelId = typeof modelItem === 'string'
-					? modelItem
-					: modelItem?.id
-				if (modelId) {
-					modelSet.add(`${providerId}/${modelId}`)
-				}
-			}
+		const providerModels: Record<string, string[]> = {}
+		for (const [providerId, modelIds] of Object.entries(cache.models)) {
+			providerModels[providerId] = (modelIds as Array<string | { id?: string }>)
+				.map((item) => (typeof item === "string" ? item : item?.id) ?? "")
+				.filter(Boolean)
 		}
-
-		log("[fetchAvailableModels] parsed from provider-models cache", {
-			count: modelSet.size,
-			connectedProviders: Array.from(connectedSet).slice(0, 5),
-		})
-
-		if (modelSet.size > 0) return modelSet
-		log("[fetchAvailableModels] provider-models cache produced no models for connected providers, falling back to models.json")
-	} else {
-		log("[fetchAvailableModels] provider-models cache not found or empty, falling back to models.json")
+		const modelSet = collectModels(providerModels, connectedSet)
+		if (modelSet.size > 0) {
+			log("[fetchAvailableModels] using provider-models cache", { count: modelSet.size })
+			return modelSet
+		}
 	}
 
-	// Level 2: models.json legacy cache (from upstream OpenCode CLI)
+	// Level 2: models.json legacy cache
 	const cacheFile = join(getOpenCodeCacheDir(), "models.json")
 	if (existsSync(cacheFile)) {
 		try {
-			const content = readFileSync(cacheFile, "utf-8")
-			const data = JSON.parse(content) as Record<string, { id?: string; models?: Record<string, { id?: string }> }>
-
-			const providerIds = Object.keys(data)
-			log("[fetchAvailableModels] providers found in models.json", { count: providerIds.length, providers: providerIds.slice(0, 10) })
-
-			for (const providerId of providerIds) {
-				if (connectedSet.size > 0 && !connectedSet.has(providerId)) continue
-
-				const provider = data[providerId]
+			const data = JSON.parse(readFileSync(cacheFile, "utf-8")) as Record<
+				string,
+				{ models?: Record<string, unknown> }
+			>
+			const providerModels: Record<string, string[]> = {}
+			for (const [providerId, provider] of Object.entries(data)) {
 				const models = provider?.models
-				if (!models || typeof models !== "object") continue
-
-				for (const modelKey of Object.keys(models)) {
-					modelSet.add(`${providerId}/${modelKey}`)
+				if (models && typeof models === "object") {
+					providerModels[providerId] = Object.keys(models)
 				}
 			}
-
-			log("[fetchAvailableModels] parsed models from models.json", {
-				count: modelSet.size,
-				connectedProviders: Array.from(connectedSet).slice(0, 5),
-			})
-
-			if (modelSet.size > 0) return modelSet
+			const modelSet = collectModels(providerModels, connectedSet)
+			if (modelSet.size > 0) {
+				log("[fetchAvailableModels] using models.json", { count: modelSet.size })
+				return modelSet
+			}
 		} catch (err) {
 			log("[fetchAvailableModels] models.json error", { error: String(err) })
 		}
-	} else {
-		log("[fetchAvailableModels] models.json cache file not found, falling back to client")
 	}
 
 	// Level 3: live client API
@@ -161,31 +114,23 @@ export async function fetchAvailableModels(client?: any): Promise<Set<string>> {
 		try {
 			const modelsResult = await client.model.list()
 			const models = normalizeSDKResponse(modelsResult, [] as Array<{ provider?: string; id?: string }>)
-
+			const providerModels: Record<string, string[]> = {}
 			for (const model of models) {
 				if (!model?.provider || !model?.id) continue
-				if (connectedSet.size > 0 && !connectedSet.has(model.provider)) continue
-				modelSet.add(`${model.provider}/${model.id}`)
+				;(providerModels[model.provider] ??= []).push(model.id)
 			}
-
-			log("[fetchAvailableModels] fetched models from client", {
-				count: modelSet.size,
-				connectedProviders: Array.from(connectedSet).slice(0, 5),
-			})
+			const modelSet = collectModels(providerModels, connectedSet)
+			log("[fetchAvailableModels] using client API", { count: modelSet.size })
+			return modelSet
 		} catch (err) {
 			log("[fetchAvailableModels] client.model.list error", { error: String(err) })
 		}
 	}
 
-	return modelSet
+	return new Set()
 }
 
-export function __resetModelCache(): void {}
-
 export function isModelCacheAvailable(): boolean {
-	if (connectedProvidersCache.hasProviderModelsCache()) {
-		return true
-	}
-	const cacheFile = join(getOpenCodeCacheDir(), "models.json")
-	return existsSync(cacheFile)
+	if (connectedProvidersCache.hasProviderModelsCache()) return true
+	return existsSync(join(getOpenCodeCacheDir(), "models.json"))
 }

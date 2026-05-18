@@ -3,7 +3,8 @@ import type { BuiltinAgentName, AgentOverrides, AgentPromptMetadata } from "../t
 import type { CategoryConfig, GitMasterConfig } from "../../config/schema"
 import type { BrowserAutomationProvider } from "../../config/schema"
 import type { AvailableAgent } from "../dynamic-agent-prompt-builder"
-import { AGENT_MODEL_REQUIREMENTS, isModelAvailable } from "../../shared"
+import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
+import { fuzzyMatchModel } from "../../shared/model-availability"
 import { buildAgent, isFactory } from "../agent-builder"
 import { applyOverrides } from "./agent-overrides"
 import { applyEnvironmentContext } from "./environment-context"
@@ -60,7 +61,7 @@ export function collectPendingBuiltinAgents(input: {
     const requirement = AGENT_MODEL_REQUIREMENTS[agentName]
 
     if (requirement?.requiresModel && availableModels) {
-      if (!isModelAvailable(requirement.requiresModel, availableModels)) {
+      if (fuzzyMatchModel(requirement.requiresModel, availableModels) === null) {
         continue
       }
     }

@@ -1,7 +1,7 @@
 import type { CategoryConfig, CategoriesConfig } from "../../config/schema"
 import { DEFAULT_CATEGORIES, CATEGORY_PROMPT_APPENDS } from "./constants"
 import { resolveModel } from "../../shared/model-resolver"
-import { isModelAvailable } from "../../shared/model-availability"
+import { fuzzyMatchModel } from "../../shared/model-availability"
 import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
 import { log } from "../../shared/logger"
 
@@ -38,7 +38,7 @@ export function resolveCategoryConfig(
 
   const categoryReq = CATEGORY_MODEL_REQUIREMENTS[categoryName]
   if (categoryReq?.requiresModel && availableModels && !hasExplicitUserConfig) {
-    if (!isModelAvailable(categoryReq.requiresModel, availableModels)) {
+    if (fuzzyMatchModel(categoryReq.requiresModel, availableModels) === null) {
       log(`[resolveCategoryConfig] Category ${categoryName} requires ${categoryReq.requiresModel} but not available`)
       return null
     }
