@@ -37,24 +37,24 @@ function loadAgentsFromDir(agentsDir: string, scope: AgentScope): LoadedAgent[] 
       const content = readFileSync(agentPath, "utf-8")
       const { data, body } = parseFrontmatter<AgentFrontmatter>(content)
 
-       const name = data.name || agentName
-       const originalDescription = data.description || ""
+      const name = data.name || agentName
+      const originalDescription = data.description || ""
 
-       const formattedDescription = `(${scope}) ${originalDescription}`
+      const formattedDescription = `(${scope}) ${originalDescription}`
 
-       const mappedModelOverride = mapClaudeModelToOpenCode(data.model)
-       const modelString = mappedModelOverride
-         ? `${mappedModelOverride.providerID}/${mappedModelOverride.modelID}`
-         : undefined
+      const mappedModelOverride = mapClaudeModelToOpenCode(data.model)
+      const modelString = mappedModelOverride
+        ? `${mappedModelOverride.providerID}/${mappedModelOverride.modelID}`
+        : undefined
 
-       const config: ClaudeCodeAgentConfig = {
-         description: formattedDescription,
-         mode: data.mode || "subagent",
-         prompt: body.trim(),
-         ...(modelString ? { model: modelString } : {}),
+      const config: ClaudeCodeAgentConfig = {
+        description: formattedDescription,
+        mode: data.mode || "subagent",
+        prompt: body.trim(),
+        ...(modelString ? { model: modelString } : {}),
        }
 
-       const toolsConfig = parseToolsConfig(data.tools)
+      const toolsConfig = parseToolsConfig(data.tools)
       if (toolsConfig) {
         config.tools = toolsConfig
       }

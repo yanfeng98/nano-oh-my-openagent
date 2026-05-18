@@ -27,10 +27,6 @@ export function createAgentToolAllowlist(
   }
 }
 
-/**
- * Converts legacy tools format to permission format.
- * For migrating user configs from older versions.
- */
 export function migrateToolsToPermission(
   tools: Record<string, boolean>
 ): Record<string, PermissionValue> {
@@ -42,10 +38,6 @@ export function migrateToolsToPermission(
   )
 }
 
-/**
- * Migrates agent config from legacy tools format to permission format.
- * If config has `tools`, converts to `permission`.
- */
 export function migrateAgentConfig(
   config: Record<string, unknown>
 ): Record<string, unknown> {
