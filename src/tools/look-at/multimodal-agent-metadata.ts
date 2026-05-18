@@ -88,9 +88,7 @@ async function resolveDynamicAgentMetadata(
 ): Promise<ResolvedAgentMetadata> {
   const fallbackChain = buildMultimodalLookerFallbackChain(visionCapableModels)
   const connectedProviders = readConnectedProvidersCache()
-  const availableModels = await fetchAvailableModels(ctx.client, {
-    connectedProviders,
-  })
+  const availableModels = await fetchAvailableModels(ctx.client)
 
   const resolution = resolveModelPipeline({
     constraints: {

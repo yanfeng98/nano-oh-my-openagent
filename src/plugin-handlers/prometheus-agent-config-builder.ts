@@ -4,7 +4,6 @@ import { resolvePromptAppend } from "../agents/builtin-agents/resolve-file-uri";
 import { AGENT_MODEL_REQUIREMENTS } from "../shared/model-requirements";
 import {
   fetchAvailableModels,
-  readConnectedProvidersCache,
   resolveModelPipeline,
 } from "../shared";
 import { resolveCategoryConfig } from "./category-config-resolver";
@@ -33,10 +32,7 @@ export async function buildPrometheusAgentConfig(params: {
     : undefined;
 
   const requirement = AGENT_MODEL_REQUIREMENTS["prometheus"];
-  const connectedProviders = readConnectedProvidersCache();
-  const availableModels = await fetchAvailableModels(undefined, {
-    connectedProviders: connectedProviders ?? undefined,
-  });
+  const availableModels = await fetchAvailableModels();
 
   const modelResolution = resolveModelPipeline({
     intent: {

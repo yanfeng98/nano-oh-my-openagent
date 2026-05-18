@@ -69,9 +69,7 @@ export async function createBuiltinAgents(
 ): Promise<Record<string, AgentConfig>> {
 
   const connectedProviders = readConnectedProvidersCache() ?? []
-  const availableModels = await fetchAvailableModels(undefined, {
-    connectedProviders: connectedProviders.length > 0 ? connectedProviders : undefined,
-  })
+  const availableModels = await fetchAvailableModels()
   const isFirstRunNoCache =
     availableModels.size === 0 && connectedProviders.length === 0
 

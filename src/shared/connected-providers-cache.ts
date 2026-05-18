@@ -54,9 +54,9 @@ export function readProviderModelsCache(): ProviderModelsCache | null {
 	try {
 		const content = readFileSync(cacheFile, "utf-8")
 		const data = JSON.parse(content) as ProviderModelsCache
-		log("[connected-providers-cache] Read provider-models cache", { 
-			providerCount: Object.keys(data.models).length, 
-			updatedAt: data.updatedAt 
+		log("[connected-providers-cache] Read provider-models cache", {
+			providerCount: Object.keys(data.models).length,
+			updatedAt: data.updatedAt
 		})
 		return data
 	} catch (err) {
