@@ -1,30 +1,24 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
-import type { BuiltinAgentName, AgentOverrides, AgentPromptMetadata } from "../types"
-import type { CategoryConfig, GitMasterConfig } from "../../config/schema"
-import type { BrowserAutomationProvider } from "../../config/schema"
+import type { AgentFactory, BuiltinAgentName, AgentOverrides, AgentPromptMetadata } from "../types"
+import type { CategoryConfig } from "../../config/schema"
 import type { AvailableAgent } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
 import { fuzzyMatchModel } from "../../shared/model-availability"
-import { buildAgent, isFactory } from "../agent-builder"
 import { applyOverrides } from "./agent-overrides"
 import { applyEnvironmentContext } from "./environment-context"
 import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
 
 export function collectPendingBuiltinAgents(input: {
-  agentSources: Record<BuiltinAgentName, import("../agent-builder").AgentSource>
+  agentSources: Record<BuiltinAgentName, AgentFactory>
   agentMetadata: Partial<Record<BuiltinAgentName, AgentPromptMetadata>>
   disabledAgents: string[]
   agentOverrides: AgentOverrides
   directory?: string
   systemDefaultModel?: string
   mergedCategories: Record<string, CategoryConfig>
-  gitMasterConfig?: GitMasterConfig
-  browserProvider?: BrowserAutomationProvider
   uiSelectedModel?: string
   availableModels: Set<string>
   isFirstRunNoCache: boolean
-  disabledSkills?: Set<string>
-  useTaskSystem?: boolean
   disableOmoEnv?: boolean
 }): { pendingAgentConfigs: Map<string, AgentConfig>; availableAgents: AvailableAgent[] } {
   const {
@@ -35,12 +29,9 @@ export function collectPendingBuiltinAgents(input: {
     directory,
     systemDefaultModel,
     mergedCategories,
-    gitMasterConfig,
-    browserProvider,
     uiSelectedModel,
     availableModels,
     isFirstRunNoCache,
-    disabledSkills,
     disableOmoEnv = false,
   } = input
 
@@ -66,7 +57,7 @@ export function collectPendingBuiltinAgents(input: {
       }
     }
 
-    const isPrimaryAgent = isFactory(source) && source.mode === "primary"
+    const isPrimaryAgent = source.mode === "primary"
 
     let resolution = applyModelResolution({
       uiSelectedModel: (isPrimaryAgent && !override?.model) ? uiSelectedModel : undefined,
@@ -81,7 +72,7 @@ export function collectPendingBuiltinAgents(input: {
     if (!resolution) continue
     const { model, variant: resolvedVariant } = resolution
 
-    let config = buildAgent(source, model, mergedCategories, gitMasterConfig, browserProvider, disabledSkills)
+    let config = source(model)
 
     if (resolvedVariant) {
       config = { ...config, variant: resolvedVariant }
