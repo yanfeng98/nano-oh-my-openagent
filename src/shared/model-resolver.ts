@@ -1,6 +1,4 @@
-import type { FallbackEntry } from "./model-requirements"
 import { normalizeModel } from "./model-normalization"
-import { resolveModelPipeline } from "./model-resolution-pipeline"
 
 export type ModelResolutionInput = {
 	userModel?: string
@@ -14,22 +12,6 @@ export type ModelSource =
 	| "provider-fallback"
 	| "system-default"
 
-export type ModelResolutionResult = {
-	model: string
-	source: ModelSource
-	variant?: string
-}
-
-export type ExtendedModelResolutionInput = {
-	uiSelectedModel?: string
-	userModel?: string
-	userFallbackModels?: string[]
-	categoryDefaultModel?: string
-	fallbackChain?: FallbackEntry[]
-	availableModels: Set<string>
-	systemDefaultModel?: string
-}
-
 
 export function resolveModel(input: ModelResolutionInput): string | undefined {
 	return (
@@ -37,27 +19,6 @@ export function resolveModel(input: ModelResolutionInput): string | undefined {
 		normalizeModel(input.inheritedModel) ??
 		input.systemDefault
 	)
-}
-
-export function resolveModelWithFallback(
-	input: ExtendedModelResolutionInput,
-): ModelResolutionResult | undefined {
-	const { uiSelectedModel, userModel, userFallbackModels, categoryDefaultModel, fallbackChain, availableModels, systemDefaultModel } = input
-	const resolved = resolveModelPipeline({
-		intent: { uiSelectedModel, userModel, userFallbackModels, categoryDefaultModel },
-		constraints: { availableModels },
-		policy: { fallbackChain, systemDefaultModel },
-	})
-
-	if (!resolved) {
-		return undefined
-	}
-
-	return {
-		model: resolved.model,
-		source: resolved.provenance,
-		variant: resolved.variant,
-	}
 }
 
 /**
