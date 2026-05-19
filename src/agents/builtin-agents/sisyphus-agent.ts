@@ -5,7 +5,7 @@ import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynam
 import { AGENT_MODEL_REQUIREMENTS, isAnyFallbackModelAvailable } from "../../shared"
 import { applyEnvironmentContext } from "./environment-context"
 import { applyOverrides } from "./agent-overrides"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { resolveAgentModel } from "./model-resolution"
 import { createSisyphusAgent } from "../sisyphus"
 
 export function maybeCreateSisyphusConfig(input: {
@@ -51,17 +51,14 @@ export function maybeCreateSisyphusConfig(input: {
 
   if (disabledAgents.includes("sisyphus") || !meetsSisyphusAnyModelRequirement) return undefined
 
-  let sisyphusResolution = applyModelResolution({
+  const sisyphusResolution = resolveAgentModel({
     uiSelectedModel: sisyphusOverride?.model ? undefined : uiSelectedModel,
     userModel: sisyphusOverride?.model,
     requirement: sisyphusRequirement,
     availableModels,
     systemDefaultModel,
+    isFirstRunNoCache: isFirstRunNoCache && !sisyphusOverride?.model && !uiSelectedModel,
   })
-
-  if (isFirstRunNoCache && !sisyphusOverride?.model && !uiSelectedModel) {
-    sisyphusResolution = getFirstFallbackModel(sisyphusRequirement)
-  }
 
   if (!sisyphusResolution) return undefined
   const { model: sisyphusModel, variant: sisyphusResolvedVariant } = sisyphusResolution

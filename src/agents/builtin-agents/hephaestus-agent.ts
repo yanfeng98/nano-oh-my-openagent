@@ -6,7 +6,7 @@ import { AGENT_MODEL_REQUIREMENTS, isAnyProviderConnected } from "../../shared"
 import { createHephaestusAgent } from "../hephaestus"
 import { applyEnvironmentContext } from "./environment-context"
 import { applyCategoryOverride, mergeAgentConfig } from "./agent-overrides"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { resolveAgentModel } from "./model-resolution"
 
 export function maybeCreateHephaestusConfig(input: {
   disabledAgents: string[]
@@ -51,16 +51,13 @@ export function maybeCreateHephaestusConfig(input: {
 
   if (!hasRequiredProvider) return undefined
 
-  let hephaestusResolution = applyModelResolution({
+  const hephaestusResolution = resolveAgentModel({
     userModel: hephaestusOverride?.model,
     requirement: hephaestusRequirement,
     availableModels,
     systemDefaultModel,
+    isFirstRunNoCache: isFirstRunNoCache && !hephaestusOverride?.model,
   })
-
-  if (isFirstRunNoCache && !hephaestusOverride?.model) {
-    hephaestusResolution = getFirstFallbackModel(hephaestusRequirement)
-  }
 
   if (!hephaestusResolution) return undefined
   const { model: hephaestusModel, variant: hephaestusResolvedVariant } = hephaestusResolution

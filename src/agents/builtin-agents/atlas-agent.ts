@@ -4,7 +4,7 @@ import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
 import type { AvailableAgent, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
 import { applyOverrides } from "./agent-overrides"
-import { applyModelResolution } from "./model-resolution"
+import { resolveAgentModel } from "./model-resolution"
 import { createAtlasAgent } from "../atlas"
 
 export function maybeCreateAtlasConfig(input: {
@@ -38,7 +38,7 @@ export function maybeCreateAtlasConfig(input: {
   const orchestratorOverride = agentOverrides["atlas"]
   const atlasRequirement = AGENT_MODEL_REQUIREMENTS["atlas"]
 
-  const atlasResolution = applyModelResolution({
+  const atlasResolution = resolveAgentModel({
     uiSelectedModel: orchestratorOverride?.model ? undefined : uiSelectedModel,
     userModel: orchestratorOverride?.model,
     requirement: atlasRequirement,

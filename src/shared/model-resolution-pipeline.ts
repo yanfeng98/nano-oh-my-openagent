@@ -17,6 +17,7 @@ export type ModelResolutionRequest = {
   policy?: {
     fallbackChain?: FallbackEntry[]
     systemDefaultModel?: string
+    isFirstRunNoCache?: boolean
   }
 }
 
@@ -39,6 +40,7 @@ export function resolveModelPipeline(
   const availableModels = constraints.availableModels
   const fallbackChain = policy?.fallbackChain
   const systemDefaultModel = policy?.systemDefaultModel
+  const isFirstRunNoCache = policy?.isFirstRunNoCache
 
   const normalizedUiModel = normalizeModel(intent?.uiSelectedModel)
   if (normalizedUiModel) {
@@ -117,6 +119,24 @@ export function resolveModelPipeline(
         }
       }
       log("No available model found in fallback chain, falling through to system default")
+    }
+  }
+
+  if (isFirstRunNoCache && fallbackChain && fallbackChain.length > 0) {
+    const entry = fallbackChain[0]
+    if (entry.providers.length > 0) {
+      const provider = entry.providers[0]
+      const transformedModel = transformModelForProvider(provider, entry.model)
+      log("Model resolved via first-run blind fallback", {
+        provider,
+        model: transformedModel,
+        variant: entry.variant,
+      })
+      return {
+        model: `${provider}/${transformedModel}`,
+        provenance: "provider-fallback",
+        variant: entry.variant,
+      }
     }
   }
 

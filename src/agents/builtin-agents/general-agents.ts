@@ -6,7 +6,7 @@ import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
 import { fuzzyMatchModel } from "../../shared/model-availability"
 import { applyOverrides } from "./agent-overrides"
 import { applyEnvironmentContext } from "./environment-context"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { resolveAgentModel } from "./model-resolution"
 
 export function collectPendingBuiltinAgents(input: {
   agentSources: Record<BuiltinAgentName, AgentFactory>
@@ -59,16 +59,14 @@ export function collectPendingBuiltinAgents(input: {
 
     const isPrimaryAgent = source.mode === "primary"
 
-    let resolution = applyModelResolution({
+    const resolution = resolveAgentModel({
       uiSelectedModel: (isPrimaryAgent && !override?.model) ? uiSelectedModel : undefined,
       userModel: override?.model,
       requirement,
       availableModels,
       systemDefaultModel,
+      isFirstRunNoCache: isFirstRunNoCache && !override?.model,
     })
-    if (!resolution && isFirstRunNoCache && !override?.model) {
-      resolution = getFirstFallbackModel(requirement)
-    }
     if (!resolution) continue
     const { model, variant: resolvedVariant } = resolution
 
