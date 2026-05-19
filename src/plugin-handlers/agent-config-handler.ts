@@ -214,32 +214,6 @@ function applyDefaultAgent(
     getAgentDisplayName(configuredDefault ?? "sisyphus");
 }
 
-// =========================================================================
-// Agent layer merge (Phase 7)
-// =========================================================================
-
-/**
- * Merge agent configs from multiple sources with defined priority.
- *
- * Layer priority (later spreads override earlier ones):
- *
- *   Layer 1 (lowest) — External sources, filtered against protected names:
- *     a. User agents       (~/.claude/agents/)
- *     b. Project agents    (.claude/agents/)
- *     c. Plugin agents     (Claude Code plugins)
- *
- *   Layer 2 — System agents (protected, external cannot override):
- *     d. Builtin agents    (oracle, librarian, explore, metis, momus, atlas,
- *                           hephaestus, multimodal-looker)
- *     e. Special agents    (sisyphus, sisyphus-junior, builder, prometheus)
- *
- *   Layer 3 — User overrides from opencode.json (excluding build/plan keys
- *             that are managed by the system)
- *
- *   Layer 4 (highest) — Hardcoded system config:
- *     f. build: { mode: "subagent", hidden: true }   (sisyphus mode only)
- *     g. plan:  planDemoteConfig                     (if plan demotion active)
- */
 function mergeAgentLayers(params: {
   specialAgents: Record<string, unknown>;
   builtinAgents: Record<string, unknown>;
@@ -249,23 +223,11 @@ function mergeAgentLayers(params: {
   disabledAgentNames: Set<string>;
   isSisyphusEnabled: boolean;
 }): Record<string, unknown> {
-  const {
-    specialAgents,
-    builtinAgents,
-    externalAgents,
-    userConfigAgent,
-    planDemoteConfig,
-    disabledAgentNames,
-    isSisyphusEnabled,
-  } = params;
-
-  // Build protected name set (normalized) from system agent keys
   const protectedNames = createProtectedAgentNameSet([
-    ...Object.keys(builtinAgents),
-    ...Object.keys(specialAgents),
+    ...Object.keys(params.builtinAgents),
+    ...Object.keys(params.specialAgents),
   ]);
 
-  // Filter: remove disabled agents + agents that conflict with protected names
   const filterAll = (agents: Record<string, unknown>) => {
     const withoutProtected = filterProtectedAgentOverrides(
       agents,
@@ -273,25 +235,24 @@ function mergeAgentLayers(params: {
     );
     return Object.fromEntries(
       Object.entries(withoutProtected).filter(
-        ([name]) => !disabledAgentNames.has(name.toLowerCase()),
+        ([name]) => !params.disabledAgentNames.has(name.toLowerCase()),
       ),
     );
   };
 
-  const filteredUserAgents = filterAll(externalAgents.userAgents);
-  const filteredProjectAgents = filterAll(externalAgents.projectAgents);
-  const filteredPluginAgents = filterAll(externalAgents.pluginAgents);
+  const filteredUserAgents = filterAll(params.externalAgents.userAgents);
+  const filteredProjectAgents = filterAll(params.externalAgents.projectAgents);
+  const filteredPluginAgents = filterAll(params.externalAgents.pluginAgents);
 
-  // Extract user overrides from opencode.json
-  const planDemoted = planDemoteConfig !== undefined;
+  const planDemoted = params.planDemoteConfig !== undefined;
 
-  const userOverrides = isSisyphusEnabled
+  const userOverrides = params.isSisyphusEnabled
     ? Object.fromEntries(
-        Object.entries(userConfigAgent ?? {})
+        Object.entries(params.userConfigAgent ?? {})
           .filter(([key]) => {
             if (key === "build") return false;
             if (key === "plan" && planDemoted) return false;
-            if (key in builtinAgents) return false;
+            if (key in params.builtinAgents) return false;
             return true;
           })
           .map(([key, value]) => [
@@ -301,31 +262,31 @@ function mergeAgentLayers(params: {
               : value,
           ]),
       )
-    : (userConfigAgent as Record<string, unknown>) ?? {};
+    : (params.userConfigAgent as Record<string, unknown>) ?? {};
 
-  // Hardcoded build config (sisyphus mode only)
-  const buildConfig = {
-    ...(userConfigAgent?.build
-      ? migrateAgentConfig(userConfigAgent.build as Record<string, unknown>)
-      : {}),
-    mode: "subagent",
-    hidden: true,
-  };
-
-  // Merge with defined priority (later spread = higher priority)
   return {
-    // Layer 1: External (lowest)
     ...filteredUserAgents,
     ...filteredProjectAgents,
     ...filteredPluginAgents,
-    // Layer 2: System
-    ...builtinAgents,
-    ...specialAgents,
-    // Layer 3: User overrides
+    ...params.builtinAgents,
+    ...params.specialAgents,
     ...userOverrides,
-    // Layer 4: Hardcoded (highest)
-    ...(isSisyphusEnabled ? { build: buildConfig } : {}),
-    ...(planDemoteConfig ? { plan: planDemoteConfig } : {}),
+    ...(params.isSisyphusEnabled
+      ? {
+          build: {
+            ...(params.userConfigAgent?.build
+              ? migrateAgentConfig(
+                  params.userConfigAgent.build as Record<string, unknown>,
+                )
+              : {}),
+            mode: "subagent",
+            hidden: true,
+          },
+        }
+      : {}),
+    ...(params.planDemoteConfig
+      ? { plan: params.planDemoteConfig }
+      : {}),
   };
 }
 
@@ -405,7 +366,6 @@ export async function applyAgentConfig(params: {
 
   applyDefaultAgent(params.config, isSisyphusEnabled, builtinAgents);
 
-  // Phase 7: Merge all layers with defined priority
   const merged = mergeAgentLayers({
     specialAgents,
     builtinAgents,
