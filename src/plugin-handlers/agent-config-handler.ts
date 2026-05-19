@@ -290,10 +290,6 @@ function mergeAgentLayers(params: {
   };
 }
 
-// =========================================================================
-// Post-processing — remap + reorder (Phase 8)
-// =========================================================================
-
 function finalizeAgentConfig(
   agents: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -376,7 +372,6 @@ export async function applyAgentConfig(params: {
     isSisyphusEnabled,
   });
 
-  // Phase 8: Post-process (key remap + priority reorder)
   const finalized = finalizeAgentConfig(merged);
   params.config.agent = finalized;
   return finalized;
