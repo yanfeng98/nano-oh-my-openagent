@@ -28,15 +28,11 @@ type AgentConfigRecord = Record<string, Record<string, unknown> | undefined> & {
   plan?: Record<string, unknown>;
 };
 
-// =========================================================================
-// Migrate disabled agent names (Phase 1)
-// =========================================================================
-
 function migrateDisabledAgentNames(
   disabledAgents: string[] | undefined,
 ): Set<string> {
   const migrated = (disabledAgents ?? []).map(
-    (agent) => AGENT_NAME_MAP[agent.toLowerCase()] ?? AGENT_NAME_MAP[agent] ?? agent,
+    (agent) => AGENT_NAME_MAP[agent.toLowerCase()] ?? agent,
   );
   return new Set(migrated.map((a) => a.toLowerCase()));
 }
@@ -371,17 +367,13 @@ function finalizeAgentConfig(
   return ordered;
 }
 
-// =========================================================================
-// Main entry point
-// =========================================================================
-
 export async function applyAgentConfig(params: {
   config: Record<string, unknown>;
   pluginConfig: OhMyOpenCodeConfig;
   ctx: { directory: string; client?: any };
   pluginComponents: PluginComponents;
 }): Promise<Record<string, unknown>> {
-  // Phase 1: Migrate disabled agent names
+
   const disabledAgentNames = migrateDisabledAgentNames(
     params.pluginConfig.disabled_agents,
   );
