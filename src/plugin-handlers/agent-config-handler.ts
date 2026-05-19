@@ -37,10 +37,6 @@ function migrateDisabledAgentNames(
   return new Set(migrated.map((a) => a.toLowerCase()));
 }
 
-// =========================================================================
-// Skill discovery — 5 sources in parallel (Phase 2)
-// =========================================================================
-
 async function discoverAllSkills(params: {
   pluginConfig: OhMyOpenCodeConfig;
   directory: string;
@@ -66,7 +62,6 @@ async function discoverAllSkills(params: {
     discoverOpencodeProjectSkills(params.directory),
   ]);
 
-  // Priority: config source > opencode project > claude project > opencode global > claude user
   return [
     ...configSourceSkills,
     ...opencodeProjectSkills,
@@ -75,10 +70,6 @@ async function discoverAllSkills(params: {
     ...userSkills,
   ];
 }
-
-// =========================================================================
-// External agent gathering (Phase 3)
-// =========================================================================
 
 interface ExternalAgents {
   userAgents: Record<string, unknown>;
@@ -99,7 +90,6 @@ function gatherExternalAgents(params: {
     ? loadProjectAgents(params.directory)
     : {};
 
-  // Migrate plugin agents at the boundary
   const pluginAgents = Object.fromEntries(
     Object.entries(params.pluginComponents.agents).map(([key, value]) => [
       key,
@@ -111,7 +101,6 @@ function gatherExternalAgents(params: {
     | Record<string, Record<string, unknown>>
     | undefined;
 
-  // Collect descriptions from all agent sources for Sisyphus's system prompt
   const customAgentSummaries = [
     ...Object.entries(configAgent ?? {}),
     ...Object.entries(userAgents),
@@ -129,10 +118,6 @@ function gatherExternalAgents(params: {
 
   return { userAgents, projectAgents, pluginAgents, customAgentSummaries };
 }
-
-// =========================================================================
-// Special agent construction — sisyphus-dependent (Phase 5)
-// =========================================================================
 
 function buildBuilderAgent(
   configBuild: Record<string, unknown> | undefined,
@@ -168,14 +153,12 @@ async function buildSpecialAgents(params: {
     sisyphus: params.builtinAgents.sisyphus,
   };
 
-  // Sisyphus-Junior
   specialAgents["sisyphus-junior"] = createSisyphusJuniorAgentWithOverrides(
     params.pluginConfig.agents?.["sisyphus-junior"],
     undefined,
     params.useTaskSystem,
   );
 
-  // Builder (optional)
   const builderEnabled =
     params.pluginConfig.sisyphus_agent?.default_builder_enabled ?? false;
   if (builderEnabled) {
@@ -187,7 +170,6 @@ async function buildSpecialAgents(params: {
     );
   }
 
-  // Prometheus / Plan demotion (optional)
   const plannerEnabled =
     params.pluginConfig.sisyphus_agent?.planner_enabled ?? true;
   let planDemoteConfig: Record<string, unknown> | undefined;
@@ -217,10 +199,6 @@ async function buildSpecialAgents(params: {
   return { specialAgents, planDemoteConfig };
 }
 
-// =========================================================================
-// Default agent (Phase 6)
-// =========================================================================
-
 function applyDefaultAgent(
   config: Record<string, unknown>,
   isSisyphusEnabled: boolean,
@@ -228,12 +206,9 @@ function applyDefaultAgent(
 ): void {
   if (!isSisyphusEnabled || !builtinAgents.sisyphus) return;
 
-  const configuredDefault = (() => {
-    const defaultAgent = config.default_agent;
-    if (typeof defaultAgent !== "string") return undefined;
-    const trimmed = defaultAgent.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  })();
+  const raw = config.default_agent;
+  const configuredDefault =
+    typeof raw === "string" && raw.trim().length > 0 ? raw.trim() : undefined;
 
   (config as { default_agent?: string }).default_agent =
     getAgentDisplayName(configuredDefault ?? "sisyphus");
@@ -378,13 +353,11 @@ export async function applyAgentConfig(params: {
     params.pluginConfig.disabled_agents,
   );
 
-  // Phase 2: Discover skills from 5 sources in parallel
   const allDiscoveredSkills = await discoverAllSkills({
     pluginConfig: params.pluginConfig,
     directory: params.ctx.directory,
   });
 
-  // Phase 3: Gather external agents from user/project/plugin sources
   const externalAgents = gatherExternalAgents({
     config: params.config,
     pluginConfig: params.pluginConfig,
@@ -392,7 +365,6 @@ export async function applyAgentConfig(params: {
     pluginComponents: params.pluginComponents,
   });
 
-  // Phase 4: Build builtin agents
   const currentModel = params.config.model as string | undefined;
   const browserProvider =
     params.pluginConfig.browser_automation_engine?.provider ?? "playwright";
@@ -418,7 +390,6 @@ export async function applyAgentConfig(params: {
     disableOmoEnv,
   );
 
-  // Phase 5: Build special agents (sisyphus-dependent)
   const isSisyphusEnabled =
     params.pluginConfig.sisyphus_agent?.disabled !== true;
   const configAgent = params.config.agent as AgentConfigRecord | undefined;
@@ -432,7 +403,6 @@ export async function applyAgentConfig(params: {
     useTaskSystem,
   });
 
-  // Phase 6: Set default agent
   applyDefaultAgent(params.config, isSisyphusEnabled, builtinAgents);
 
   // Phase 7: Merge all layers with defined priority
