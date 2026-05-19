@@ -81,6 +81,7 @@ export type AgentOverrideConfig = Partial<AgentConfig> & {
   prompt_append?: string;
   variant?: string;
   fallback_models?: string | string[];
+  category?: string;
 };
 
 export type AgentOverrides = Partial<

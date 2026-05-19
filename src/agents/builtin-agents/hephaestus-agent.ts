@@ -4,8 +4,7 @@ import type { CategoryConfig } from "../../config/schema"
 import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS, isAnyProviderConnected } from "../../shared"
 import { createHephaestusAgent } from "../hephaestus"
-import { applyEnvironmentContext } from "./environment-context"
-import { applyCategoryOverride, mergeAgentConfig } from "./agent-overrides"
+import { finalizeAgentConfig } from "./agent-overrides"
 import { resolveAgentModel } from "./model-resolution"
 
 export function maybeCreateHephaestusConfig(input: {
@@ -73,15 +72,11 @@ export function maybeCreateHephaestusConfig(input: {
 
   hephaestusConfig = { ...hephaestusConfig, variant: hephaestusResolvedVariant ?? "medium" }
 
-  const hepOverrideCategory = (hephaestusOverride as Record<string, unknown> | undefined)?.category as string | undefined
-  if (hepOverrideCategory) {
-    hephaestusConfig = applyCategoryOverride(hephaestusConfig, hepOverrideCategory, mergedCategories)
-  }
-
-  hephaestusConfig = applyEnvironmentContext(hephaestusConfig, directory, { disableOmoEnv })
-
-  if (hephaestusOverride) {
-    hephaestusConfig = mergeAgentConfig(hephaestusConfig, hephaestusOverride, directory)
-  }
-  return hephaestusConfig
+  return finalizeAgentConfig({
+    config: hephaestusConfig,
+    override: hephaestusOverride,
+    mergedCategories,
+    directory,
+    disableOmoEnv,
+  })
 }

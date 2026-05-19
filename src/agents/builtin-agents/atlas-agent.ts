@@ -3,7 +3,7 @@ import type { AgentOverrides } from "../types"
 import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
 import type { AvailableAgent, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
-import { applyOverrides } from "./agent-overrides"
+import { finalizeAgentConfig } from "./agent-overrides"
 import { resolveAgentModel } from "./model-resolution"
 import { createAtlasAgent } from "../atlas"
 
@@ -60,7 +60,10 @@ export function maybeCreateAtlasConfig(input: {
     orchestratorConfig = { ...orchestratorConfig, variant: atlasResolvedVariant }
   }
 
-  orchestratorConfig = applyOverrides(orchestratorConfig, orchestratorOverride, mergedCategories, directory)
-
-  return orchestratorConfig
+  return finalizeAgentConfig({
+    config: orchestratorConfig,
+    override: orchestratorOverride,
+    mergedCategories,
+    directory,
+  })
 }

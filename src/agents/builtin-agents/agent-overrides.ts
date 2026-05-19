@@ -3,6 +3,7 @@ import type { AgentOverrideConfig } from "../types"
 import type { CategoryConfig } from "../../config/schema"
 import { deepMerge, migrateAgentConfig } from "../../shared"
 import { resolvePromptAppend } from "./resolve-file-uri"
+import { applyEnvironmentContext } from "./environment-context"
 
 export function applyCategoryOverride(
   config: AgentConfig,
@@ -11,22 +12,7 @@ export function applyCategoryOverride(
 ): AgentConfig {
   const categoryConfig = mergedCategories[categoryName]
   if (!categoryConfig) return config
-
-  const result = { ...config } as AgentConfig & Record<string, unknown>
-  if (categoryConfig.model) result.model = categoryConfig.model
-  if (categoryConfig.variant !== undefined) result.variant = categoryConfig.variant
-  if (categoryConfig.temperature !== undefined) result.temperature = categoryConfig.temperature
-  if (categoryConfig.reasoningEffort !== undefined) result.reasoningEffort = categoryConfig.reasoningEffort
-  if (categoryConfig.textVerbosity !== undefined) result.textVerbosity = categoryConfig.textVerbosity
-  if (categoryConfig.thinking !== undefined) result.thinking = categoryConfig.thinking
-  if (categoryConfig.top_p !== undefined) result.top_p = categoryConfig.top_p
-  if (categoryConfig.maxTokens !== undefined) result.maxTokens = categoryConfig.maxTokens
-
-  if (categoryConfig.prompt_append && typeof result.prompt === "string") {
-    result.prompt = result.prompt + "\n" + resolvePromptAppend(categoryConfig.prompt_append)
-  }
-
-  return result as AgentConfig
+  return deepMerge(config, categoryConfig as Partial<AgentConfig>) as AgentConfig
 }
 
 export function mergeAgentConfig(
@@ -45,21 +31,26 @@ export function mergeAgentConfig(
   return merged
 }
 
-export function applyOverrides(
-  config: AgentConfig,
-  override: AgentOverrideConfig | undefined,
-  mergedCategories: Record<string, CategoryConfig>,
+export function finalizeAgentConfig(params: {
+  config: AgentConfig
+  override?: AgentOverrideConfig
+  mergedCategories: Record<string, CategoryConfig>
   directory?: string
-): AgentConfig {
-  let result = config
-  const overrideCategory = (override as Record<string, unknown> | undefined)?.category as string | undefined
-  if (overrideCategory) {
-    result = applyCategoryOverride(result, overrideCategory, mergedCategories)
+  disableOmoEnv?: boolean
+}): AgentConfig {
+  let config = params.config
+
+  if (params.override?.category) {
+    config = applyCategoryOverride(config, params.override.category, params.mergedCategories)
   }
 
-  if (override) {
-    result = mergeAgentConfig(result, override, directory)
+  config = applyEnvironmentContext(config, params.directory, {
+    disableOmoEnv: params.disableOmoEnv,
+  })
+
+  if (params.override) {
+    config = mergeAgentConfig(config, params.override, params.directory)
   }
 
-  return result
+  return config
 }

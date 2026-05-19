@@ -3,8 +3,7 @@ import type { AgentOverrides } from "../types"
 import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
 import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS, isAnyFallbackModelAvailable } from "../../shared"
-import { applyEnvironmentContext } from "./environment-context"
-import { applyOverrides } from "./agent-overrides"
+import { finalizeAgentConfig } from "./agent-overrides"
 import { resolveAgentModel } from "./model-resolution"
 import { createSisyphusAgent } from "../sisyphus"
 
@@ -76,10 +75,11 @@ export function maybeCreateSisyphusConfig(input: {
     sisyphusConfig = { ...sisyphusConfig, variant: sisyphusResolvedVariant }
   }
 
-  sisyphusConfig = applyOverrides(sisyphusConfig, sisyphusOverride, mergedCategories, directory)
-  sisyphusConfig = applyEnvironmentContext(sisyphusConfig, directory, {
+  return finalizeAgentConfig({
+    config: sisyphusConfig,
+    override: sisyphusOverride,
+    mergedCategories,
+    directory,
     disableOmoEnv,
   })
-
-  return sisyphusConfig
 }

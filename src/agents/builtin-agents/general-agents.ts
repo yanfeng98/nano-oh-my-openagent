@@ -4,8 +4,7 @@ import type { CategoryConfig } from "../../config/schema"
 import type { AvailableAgent } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared"
 import { fuzzyMatchModel } from "../../shared/model-availability"
-import { applyOverrides } from "./agent-overrides"
-import { applyEnvironmentContext } from "./environment-context"
+import { finalizeAgentConfig } from "./agent-overrides"
 import { resolveAgentModel } from "./model-resolution"
 
 export function collectPendingBuiltinAgents(input: {
@@ -76,11 +75,13 @@ export function collectPendingBuiltinAgents(input: {
       config = { ...config, variant: resolvedVariant }
     }
 
-    if (agentName === "librarian") {
-      config = applyEnvironmentContext(config, directory, { disableOmoEnv })
-    }
-
-    config = applyOverrides(config, override, mergedCategories, directory)
+    config = finalizeAgentConfig({
+      config,
+      override,
+      mergedCategories,
+      directory,
+      disableOmoEnv,
+    })
 
     pendingAgentConfigs.set(name, config)
 
