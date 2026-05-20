@@ -34,13 +34,3 @@ export interface McpRemoteConfig {
 
 export type McpServerConfig = McpLocalConfig | McpRemoteConfig
 
-export interface LoadedMcpServer {
-  name: string
-  scope: McpScope
-  config: McpServerConfig
-}
-
-export interface McpLoadResult {
-  servers: Record<string, McpServerConfig>
-  loadedServers: LoadedMcpServer[]
-}

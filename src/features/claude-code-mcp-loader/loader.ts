@@ -2,12 +2,7 @@ import { existsSync, readFileSync } from "fs"
 import { join } from "path"
 import { homedir } from "os"
 import { getClaudeConfigDir } from "../../shared"
-import type {
-  ClaudeCodeMcpConfig,
-  LoadedMcpServer,
-  McpLoadResult,
-  McpScope,
-} from "./types"
+import type { ClaudeCodeMcpConfig, McpScope, McpServerConfig } from "./types"
 import { transformMcpServer } from "./transformer"
 import { log } from "../../shared/logger"
 
@@ -69,12 +64,10 @@ export function getSystemMcpServerNames(): Set<string> {
 }
 
 export async function loadMcpConfigs(
-  disabledMcps: string[] = []
-): Promise<McpLoadResult> {
-  const servers: McpLoadResult["servers"] = {}
-  const loadedServers: LoadedMcpServer[] = []
+  disabledSet: Set<string>
+): Promise<Record<string, McpServerConfig>> {
+  const servers: Record<string, McpServerConfig> = {}
   const paths = getMcpConfigPaths()
-  const disabledSet = new Set(disabledMcps)
 
   for (const { path, scope } of paths) {
     const config = await loadMcpConfigFile(path)
@@ -89,25 +82,11 @@ export async function loadMcpConfigs(
       if (serverConfig.disabled) {
         log(`Disabling MCP server "${name}"`, { path })
         delete servers[name]
-        const existingIndex = loadedServers.findIndex((s) => s.name === name)
-        if (existingIndex !== -1) {
-          loadedServers.splice(existingIndex, 1)
-          log(`Removed previously loaded MCP server "${name}"`, { path })
-        }
         continue
       }
 
       try {
-        const transformed = transformMcpServer(name, serverConfig)
-        servers[name] = transformed
-
-        const existingIndex = loadedServers.findIndex((s) => s.name === name)
-        if (existingIndex !== -1) {
-          loadedServers.splice(existingIndex, 1)
-        }
-
-        loadedServers.push({ name, scope, config: transformed })
-
+        servers[name] = transformMcpServer(name, serverConfig)
         log(`Loaded MCP server "${name}" from ${scope}`, { path })
       } catch (error) {
         log(`Failed to transform MCP server "${name}"`, error)
@@ -115,15 +94,5 @@ export async function loadMcpConfigs(
     }
   }
 
-  return { servers, loadedServers }
-}
-
-export function formatLoadedServersForToast(
-  loadedServers: LoadedMcpServer[]
-): string {
-  if (loadedServers.length === 0) return ""
-
-  return loadedServers
-    .map((server) => `${server.name} (${server.scope})`)
-    .join(", ")
+  return servers
 }
