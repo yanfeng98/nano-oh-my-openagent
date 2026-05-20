@@ -14,7 +14,10 @@ function getConfigQuestionPermission(): string | null {
   }
 }
 
-function agentByKey(agentResult: Record<string, unknown>, key: string): AgentWithPermission | undefined {
+function agentByKey(
+  agentResult: Record<string, unknown>,
+  key: string,
+): AgentWithPermission | undefined {
   return (agentResult[key] ?? agentResult[getAgentDisplayName(key)]) as
     | AgentWithPermission
     | undefined;
@@ -25,9 +28,10 @@ export function applyToolConfig(params: {
   pluginConfig: OhMyOpenCodeConfig;
   agentResult: Record<string, unknown>;
 }): void {
-  const denyTodoTools = params.pluginConfig.experimental?.task_system
+  const hasTaskSystem = !!params.pluginConfig.experimental?.task_system;
+  const denyTodoTools = hasTaskSystem
     ? { todowrite: "deny", todoread: "deny" }
-    : {}
+    : {};
 
   params.config.tools = {
     ...(params.config.tools as Record<string, unknown>),
@@ -37,80 +41,50 @@ export function applyToolConfig(params: {
     LspCodeActionResolve: false,
     "task_*": false,
     teammate: false,
-    ...(params.pluginConfig.experimental?.task_system
-      ? { todowrite: false, todoread: false }
-      : {}),
+    ...(hasTaskSystem ? { todowrite: false, todoread: false } : {}),
   };
 
-  const isCliRunMode = process.env.OPENCODE_CLI_RUN_MODE === "true";
-  const configQuestionPermission = getConfigQuestionPermission();
   const questionPermission =
-    configQuestionPermission === "deny" ? "deny" :
-    isCliRunMode ? "deny" :
-    "allow";
+    getConfigQuestionPermission() === "deny" ||
+    process.env.OPENCODE_CLI_RUN_MODE === "true"
+      ? "deny"
+      : "allow";
 
-  const librarian = agentByKey(params.agentResult, "librarian");
-  if (librarian) {
-    librarian.permission = { ...librarian.permission, "grep_app_*": "allow" };
-  }
-  const looker = agentByKey(params.agentResult, "multimodal-looker");
-  if (looker) {
-    looker.permission = { ...looker.permission, task: "deny", look_at: "deny" };
-  }
-  const atlas = agentByKey(params.agentResult, "atlas");
-  if (atlas) {
-    atlas.permission = {
-      ...atlas.permission,
-      task: "allow",
+  const taskBase = { task: "allow", ...denyTodoTools };
+  const subAgents = {
+    call_omo_agent: "deny",
+    "task_*": "allow",
+    teammate: "allow",
+  };
+  const supervisorPerms = {
+    ...taskBase,
+    ...subAgents,
+    question: questionPermission,
+  };
+
+  const agentPerms: Record<string, Record<string, unknown>> = {
+    librarian: { "grep_app_*": "allow" },
+    "multimodal-looker": { task: "deny", look_at: "deny" },
+    atlas: { ...taskBase, ...subAgents },
+    sisyphus: supervisorPerms,
+    prometheus: supervisorPerms,
+    hephaestus: {
+      ...taskBase,
       call_omo_agent: "deny",
-      "task_*": "allow",
-      teammate: "allow",
-      ...denyTodoTools,
-    };
-  }
-  const sisyphus = agentByKey(params.agentResult, "sisyphus");
-  if (sisyphus) {
-    sisyphus.permission = {
-      ...sisyphus.permission,
-      call_omo_agent: "deny",
-      task: "allow",
       question: questionPermission,
+    },
+    "sisyphus-junior": {
+      ...taskBase,
       "task_*": "allow",
       teammate: "allow",
-      ...denyTodoTools,
-    };
-  }
-  const hephaestus = agentByKey(params.agentResult, "hephaestus");
-  if (hephaestus) {
-    hephaestus.permission = {
-      ...hephaestus.permission,
-      call_omo_agent: "deny",
-      task: "allow",
-      question: questionPermission,
-      ...denyTodoTools,
-    };
-  }
-  const prometheus = agentByKey(params.agentResult, "prometheus");
-  if (prometheus) {
-    prometheus.permission = {
-      ...prometheus.permission,
-      call_omo_agent: "deny",
-      task: "allow",
-      question: questionPermission,
-      "task_*": "allow",
-      teammate: "allow",
-      ...denyTodoTools,
-    };
-  }
-  const junior = agentByKey(params.agentResult, "sisyphus-junior");
-  if (junior) {
-    junior.permission = {
-      ...junior.permission,
-      task: "allow",
-      "task_*": "allow",
-      teammate: "allow",
-      ...denyTodoTools,
-    };
+    },
+  };
+
+  for (const [key, perms] of Object.entries(agentPerms)) {
+    const agent = agentByKey(params.agentResult, key);
+    if (agent) {
+      agent.permission = { ...agent.permission, ...perms };
+    }
   }
 
   params.config.permission = {
