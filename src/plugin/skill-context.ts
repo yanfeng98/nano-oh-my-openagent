@@ -34,19 +34,6 @@ function mapScopeToLocation(scope: SkillScope): AvailableSkill["location"] {
   return "plugin"
 }
 
-function filterProviderGatedSkills(
-  skills: LoadedSkill[],
-  browserProvider: BrowserAutomationProvider,
-): LoadedSkill[] {
-  return skills.filter((skill) => {
-    if (!PROVIDER_GATED_SKILL_NAMES.has(skill.name)) {
-      return true
-    }
-
-    return skill.name === browserProvider
-  })
-}
-
 export async function createSkillContext(args: {
   directory: string
   pluginConfig: OhMyOpenCodeConfig
@@ -57,74 +44,74 @@ export async function createSkillContext(args: {
     pluginConfig.browser_automation_engine?.provider ?? "playwright"
 
   const disabledSkills = new Set<string>(pluginConfig.disabled_skills ?? [])
-  const systemMcpNames = getSystemMcpServerNames()
+  const includeClaudeSkills = pluginConfig.claude_code?.skills !== false
 
+  // ── Step 1: Discover all skill sources in parallel ──
+  const [
+    configSourceSkills,
+    userSkills,
+    globalSkills,
+    projectSkills,
+    opencodeProjectSkills,
+    agentsProjectSkills,
+    agentsGlobalSkills,
+  ] = await Promise.all([
+    discoverConfigSourceSkills({
+      config: pluginConfig.skills,
+      configDir: directory,
+    }),
+    includeClaudeSkills ? discoverUserClaudeSkills() : Promise.resolve([]),
+    discoverOpencodeGlobalSkills(),
+    includeClaudeSkills ? discoverProjectClaudeSkills(directory) : Promise.resolve([]),
+    discoverOpencodeProjectSkills(directory),
+    discoverProjectAgentsSkills(directory),
+    discoverGlobalAgentsSkills(),
+  ])
+
+  // ── Step 2: Build builtin skills (provider selection happens here) ──
   const builtinSkills = createBuiltinSkills({
     browserProvider,
     disabledSkills,
-  }).filter((skill) => {
-    if (skill.mcpConfig) {
-      for (const mcpName of Object.keys(skill.mcpConfig)) {
-        if (systemMcpNames.has(mcpName)) return false
-      }
-    }
-    return true
   })
 
-  const includeClaudeSkills = pluginConfig.claude_code?.skills !== false
-  const [configSourceSkills, userSkills, globalSkills, projectSkills, opencodeProjectSkills, agentsProjectSkills, agentsGlobalSkills] =
-    await Promise.all([
-      discoverConfigSourceSkills({
-        config: pluginConfig.skills,
-        configDir: directory,
-      }),
-      includeClaudeSkills ? discoverUserClaudeSkills() : Promise.resolve([]),
-      discoverOpencodeGlobalSkills(),
-      includeClaudeSkills ? discoverProjectClaudeSkills(directory) : Promise.resolve([]),
-      discoverOpencodeProjectSkills(directory),
-      discoverProjectAgentsSkills(directory),
-      discoverGlobalAgentsSkills(),
-    ])
+  // ── Step 3: Filter provider-gated skills from all discovered sources (single pass) ──
+  const allDiscovered = [
+    ...configSourceSkills,
+    ...userSkills,
+    ...globalSkills,
+    ...projectSkills,
+    ...opencodeProjectSkills,
+    ...agentsProjectSkills,
+    ...agentsGlobalSkills,
+  ].filter((skill) => {
+    if (!PROVIDER_GATED_SKILL_NAMES.has(skill.name)) return true
+    return skill.name === browserProvider
+  })
 
-  const filteredConfigSourceSkills = filterProviderGatedSkills(
-    configSourceSkills,
-    browserProvider,
-  )
-  const filteredUserSkills = filterProviderGatedSkills(userSkills, browserProvider)
-  const filteredGlobalSkills = filterProviderGatedSkills(globalSkills, browserProvider)
-  const filteredProjectSkills = filterProviderGatedSkills(projectSkills, browserProvider)
-  const filteredOpencodeProjectSkills = filterProviderGatedSkills(
-    opencodeProjectSkills,
-    browserProvider,
-  )
-  const filteredAgentsProjectSkills = filterProviderGatedSkills(
-    agentsProjectSkills,
-    browserProvider,
-  )
-  const filteredAgentsGlobalSkills = filterProviderGatedSkills(
-    agentsGlobalSkills,
-    browserProvider,
-  )
-
+  // ── Step 4: Merge — builtins → config → filesystem (by scope priority), then apply config overrides ──
   const mergedSkills = mergeSkills(
     builtinSkills,
     pluginConfig.skills,
-    filteredConfigSourceSkills,
-    [...filteredUserSkills, ...filteredAgentsGlobalSkills],
-    filteredGlobalSkills,
-    [...filteredProjectSkills, ...filteredAgentsProjectSkills],
-    filteredOpencodeProjectSkills,
+    allDiscovered,
     { configDir: directory },
   )
 
-  const availableSkills: AvailableSkill[] = mergedSkills.map((skill) => ({
+  // ── Step 5: Exclude skills whose MCP config conflicts with system MCP servers ──
+  const systemMcpNames = getSystemMcpServerNames()
+  const finalSkills = mergedSkills.filter((skill) => {
+    if (!skill.mcpConfig) return true
+    return !Object.keys(skill.mcpConfig).some((name) => systemMcpNames.has(name))
+  })
+
+  // ── Step 6: Convert to AvailableSkill format ──
+  const availableSkills: AvailableSkill[] = finalSkills.map((skill) => ({
     name: skill.name,
     description: skill.definition.description ?? "",
     location: mapScopeToLocation(skill.scope),
   }))
 
   return {
-    mergedSkills,
+    mergedSkills: finalSkills,
     availableSkills,
     browserProvider,
     disabledSkills,

@@ -14,47 +14,18 @@ export interface MergeSkillsOptions {
 export function mergeSkills(
   builtinSkills: BuiltinSkill[],
   config: SkillsConfig | undefined,
-  configSourceSkills: LoadedSkill[],
-  userClaudeSkills: LoadedSkill[],
-  userOpencodeSkills: LoadedSkill[],
-  projectClaudeSkills: LoadedSkill[],
-  projectOpencodeSkills: LoadedSkill[],
+  fileSystemSkills: LoadedSkill[],
   options: MergeSkillsOptions = {}
 ): LoadedSkill[] {
   const skillMap = new Map<string, LoadedSkill>()
 
+  // Pass A: Load builtins
   for (const builtin of builtinSkills) {
     const loaded = builtinToLoadedSkill(builtin)
     skillMap.set(loaded.name, loaded)
   }
 
-  const normalizedConfig = normalizeSkillsConfig(config)
-
-  for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
-    if (entry === false) continue
-    if (entry === true) continue
-
-    if (entry.disable) continue
-
-    const loaded = configEntryToLoadedSkill(name, entry, options.configDir)
-    if (loaded) {
-      const existing = skillMap.get(name)
-      if (existing && !entry.template && !entry.from) {
-        skillMap.set(name, mergeSkillDefinitions(existing, entry))
-      } else {
-        skillMap.set(name, loaded)
-      }
-    }
-  }
-
-  const fileSystemSkills = [
-    ...configSourceSkills,
-    ...userClaudeSkills,
-    ...userOpencodeSkills,
-    ...projectClaudeSkills,
-    ...projectOpencodeSkills,
-  ]
-
+  // Pass B: Merge filesystem skills by SCOPE_PRIORITY (higher priority wins)
   for (const skill of fileSystemSkills) {
     const existing = skillMap.get(skill.name)
     if (!existing || SCOPE_PRIORITY[skill.scope] > SCOPE_PRIORITY[existing.scope]) {
@@ -62,27 +33,49 @@ export function mergeSkills(
     }
   }
 
+  const normalizedConfig = normalizeSkillsConfig(config)
+
+  // Pass C: Apply config entries (single pass — content entries add/replace;
+  // override entries merge into whatever won in Pass B)
   for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
-    if (entry === true) continue
+    // Narrow entry type: boolean → SkillDefinition
     if (entry === false) {
       skillMap.delete(name)
       continue
     }
+    if (entry === true) {
+      continue
+    }
+
     if (entry.disable) {
       skillMap.delete(name)
       continue
     }
 
-    const existing = skillMap.get(name)
-    if (existing && !entry.template && !entry.from) {
-      skillMap.set(name, mergeSkillDefinitions(existing, entry))
+    if (entry.template || entry.from) {
+      // Content entry: add only if no higher-priority filesystem skill exists
+      const existing = skillMap.get(name)
+      if (!existing || SCOPE_PRIORITY.config >= SCOPE_PRIORITY[existing.scope]) {
+        const loaded = configEntryToLoadedSkill(name, entry, options.configDir)
+        if (loaded) {
+          skillMap.set(name, loaded)
+        }
+      }
+    } else {
+      // Override entry: merge description/model/agent/etc. into existing skill
+      const existing = skillMap.get(name)
+      if (existing) {
+        skillMap.set(name, mergeSkillDefinitions(existing, entry))
+      }
     }
   }
 
+  // Pass D: Apply top-level disable list
   for (const name of normalizedConfig.disable) {
     skillMap.delete(name)
   }
 
+  // Pass E: Apply enable whitelist (when non-empty, only listed skills survive)
   if (normalizedConfig.enable.length > 0) {
     const enableSet = new Set(normalizedConfig.enable)
     for (const name of skillMap.keys()) {
