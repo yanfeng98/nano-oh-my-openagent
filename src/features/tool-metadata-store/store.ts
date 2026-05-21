@@ -38,10 +38,6 @@ function cleanupStaleEntries(): void {
   }
 }
 
-/**
- * Store metadata to be restored after fromPlugin() overwrites it.
- * Called from tool execute() functions alongside ctx.metadata().
- */
 export function storeToolMetadata(
   sessionID: string,
   callID: string,
