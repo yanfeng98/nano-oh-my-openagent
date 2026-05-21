@@ -19,13 +19,11 @@ export function mergeSkills(
 ): LoadedSkill[] {
   const skillMap = new Map<string, LoadedSkill>()
 
-  // Pass A: Load builtins
   for (const builtin of builtinSkills) {
     const loaded = builtinToLoadedSkill(builtin)
     skillMap.set(loaded.name, loaded)
   }
 
-  // Pass B: Merge filesystem skills by SCOPE_PRIORITY (higher priority wins)
   for (const skill of fileSystemSkills) {
     const existing = skillMap.get(skill.name)
     if (!existing || SCOPE_PRIORITY[skill.scope] > SCOPE_PRIORITY[existing.scope]) {
@@ -35,10 +33,7 @@ export function mergeSkills(
 
   const normalizedConfig = normalizeSkillsConfig(config)
 
-  // Pass C: Apply config entries (single pass — content entries add/replace;
-  // override entries merge into whatever won in Pass B)
   for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
-    // Narrow entry type: boolean → SkillDefinition
     if (entry === false) {
       skillMap.delete(name)
       continue
@@ -53,7 +48,6 @@ export function mergeSkills(
     }
 
     if (entry.template || entry.from) {
-      // Content entry: add only if no higher-priority filesystem skill exists
       const existing = skillMap.get(name)
       if (!existing || SCOPE_PRIORITY.config >= SCOPE_PRIORITY[existing.scope]) {
         const loaded = configEntryToLoadedSkill(name, entry, options.configDir)
@@ -62,7 +56,6 @@ export function mergeSkills(
         }
       }
     } else {
-      // Override entry: merge description/model/agent/etc. into existing skill
       const existing = skillMap.get(name)
       if (existing) {
         skillMap.set(name, mergeSkillDefinitions(existing, entry))
@@ -70,12 +63,10 @@ export function mergeSkills(
     }
   }
 
-  // Pass D: Apply top-level disable list
   for (const name of normalizedConfig.disable) {
     skillMap.delete(name)
   }
 
-  // Pass E: Apply enable whitelist (when non-empty, only listed skills survive)
   if (normalizedConfig.enable.length > 0) {
     const enableSet = new Set(normalizedConfig.enable)
     for (const name of skillMap.keys()) {

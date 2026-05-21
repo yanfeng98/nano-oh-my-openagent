@@ -46,7 +46,6 @@ export async function createSkillContext(args: {
   const disabledSkills = new Set<string>(pluginConfig.disabled_skills ?? [])
   const includeClaudeSkills = pluginConfig.claude_code?.skills !== false
 
-  // ── Step 1: Discover all skill sources in parallel ──
   const [
     configSourceSkills,
     userSkills,
@@ -68,13 +67,11 @@ export async function createSkillContext(args: {
     discoverGlobalAgentsSkills(),
   ])
 
-  // ── Step 2: Build builtin skills (provider selection happens here) ──
   const builtinSkills = createBuiltinSkills({
     browserProvider,
     disabledSkills,
   })
 
-  // ── Step 3: Filter provider-gated skills from all discovered sources (single pass) ──
   const allDiscovered = [
     ...configSourceSkills,
     ...userSkills,
@@ -88,7 +85,6 @@ export async function createSkillContext(args: {
     return skill.name === browserProvider
   })
 
-  // ── Step 4: Merge — builtins → config → filesystem (by scope priority), then apply config overrides ──
   const mergedSkills = mergeSkills(
     builtinSkills,
     pluginConfig.skills,
@@ -96,14 +92,12 @@ export async function createSkillContext(args: {
     { configDir: directory },
   )
 
-  // ── Step 5: Exclude skills whose MCP config conflicts with system MCP servers ──
   const systemMcpNames = getSystemMcpServerNames()
   const finalSkills = mergedSkills.filter((skill) => {
     if (!skill.mcpConfig) return true
     return !Object.keys(skill.mcpConfig).some((name) => systemMcpNames.has(name))
   })
 
-  // ── Step 6: Convert to AvailableSkill format ──
   const availableSkills: AvailableSkill[] = finalSkills.map((skill) => ({
     name: skill.name,
     description: skill.definition.description ?? "",
