@@ -9,10 +9,6 @@ import { formatFullSession } from "./full-session-format"
 import { formatTaskResult } from "./task-result-format"
 import { formatTaskStatus } from "./task-status-format"
 
-import { getAgentDisplayName } from "../../shared/agent-display-names"
-
-const SISYPHUS_JUNIOR_AGENT = getAgentDisplayName("sisyphus-junior")
-
 type ToolContextWithMetadata = {
   sessionID: string
   metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
@@ -29,7 +25,7 @@ function resolveToolCallID(ctx: ToolContextWithMetadata): string | undefined {
 }
 
 function formatResolvedTitle(task: BackgroundTask): string {
-  const label = task.agent === SISYPHUS_JUNIOR_AGENT && task.category ? task.category : task.agent
+  const label = task.agent.toLowerCase() === "sisyphus-junior" && task.category ? task.category : task.agent
   return `${label} - ${task.description}`
 }
 
@@ -122,10 +118,7 @@ export function createBackgroundOutput(manager: BackgroundOutputManager, client:
         }
 
         const isActive = isTaskActiveStatus(resolvedTask.status)
-        const fullSessionProvided = args.full_session !== undefined
-        const fullSession = fullSessionProvided
-          ? (args.full_session ?? true)
-          : true
+        const fullSession = args.full_session ?? true
         const includeThinking = isActive || (args.include_thinking ?? false)
         const includeToolResults = isActive || (args.include_tool_results ?? false)
 
