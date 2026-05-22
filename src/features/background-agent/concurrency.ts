@@ -69,18 +69,14 @@ export class ConcurrencyManager {
     }
 
     const queue = this.queues.get(model)
-
-    // Try to hand off to a waiting entry (skip any settled entries from cancelWaiters)
     while (queue && queue.length > 0) {
       const next = queue.shift()!
       if (!next.settled) {
-        // Hand off the slot to this waiter (count stays the same)
         next.resolve()
         return
       }
     }
 
-    // No handoff occurred - decrement the count to free the slot
     const current = this.counts.get(model) ?? 0
     if (current > 0) {
       this.counts.set(model, current - 1)

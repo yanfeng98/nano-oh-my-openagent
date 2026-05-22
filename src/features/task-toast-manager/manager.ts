@@ -74,16 +74,10 @@ export class TaskToastManager {
     this.showTaskListToast(task)
   }
 
-  /**
-   * Remove completed/error task
-   */
   removeTask(id: string): void {
     this.tasks.delete(id)
   }
 
-  /**
-   * Get all running tasks (newest first)
-   */
   getRunningTasks(): TrackedTask[] {
     const running = Array.from(this.tasks.values())
       .filter((t) => t.status === "running")
@@ -91,9 +85,6 @@ export class TaskToastManager {
     return running
   }
 
-  /**
-   * Get all queued tasks
-   */
   getQueuedTasks(): TrackedTask[] {
     return Array.from(this.tasks.values())
       .filter((t) => t.status === "queued")
@@ -197,9 +188,6 @@ export class TaskToastManager {
     }).catch(() => {})
   }
 
-  /**
-   * Show task completion toast
-   */
   showCompletionToast(task: { id: string; description: string; duration: string }): void {
     const tuiClient = this.client as ClientWithTui
     if (!tuiClient.tui?.showToast) return

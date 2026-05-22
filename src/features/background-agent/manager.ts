@@ -1166,10 +1166,6 @@ export class BackgroundManager {
     }
   }
 
-  /**
-   * Remove task from pending tracking for its parent session.
-   * Cleans up the parent entry if no pending tasks remain.
-   */
   private cleanupPendingByParent(task: BackgroundTask): void {
     if (!task.parentSessionID) return
     const pending = this.pendingByParent.get(task.parentSessionID)
@@ -1403,14 +1399,11 @@ export class BackgroundManager {
   }
 
   private async notifyParentSession(task: BackgroundTask): Promise<void> {
-    // Note: Callers must release concurrency before calling this method
-    // to ensure slots are freed even if notification fails
 
     const duration = formatDuration(task.startedAt ?? new Date(), task.completedAt)
 
     log("[background-agent] notifyParentSession called for task:", task.id)
 
-    // Show toast notification
     const toastManager = getTaskToastManager()
     if (toastManager) {
       toastManager.showCompletionToast({
@@ -1428,7 +1421,6 @@ export class BackgroundManager {
       description: task.description,
     })
 
-    // Update pending tracking and check if all tasks complete
     const pendingSet = this.pendingByParent.get(task.parentSessionID)
     let allComplete = false
     let remainingCount = 0
@@ -1478,7 +1470,6 @@ ${completedTasksText || `- \`${task.id}\`: ${task.description}`}
 Use \`background_output(task_id="<id>")\` to retrieve each result.
 </system-reminder>`
     } else {
-      // Individual completion - silent notification
       notification = `<system-reminder>
 [BACKGROUND TASK ${statusText}]
 **ID:** \`${task.id}\`
