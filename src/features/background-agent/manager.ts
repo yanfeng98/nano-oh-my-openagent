@@ -582,6 +582,26 @@ export class BackgroundManager {
     return input.agent
   }
 
+  private getConcurrencyKeyFromTask(task: BackgroundTask): string {
+    if (task.model) {
+      return `${task.model.providerID}/${task.model.modelID}`
+    }
+    return task.agent
+  }
+
+  private clearTaskTimers(taskId: string): void {
+    const completionTimer = this.completionTimers.get(taskId)
+    if (completionTimer) {
+      clearTimeout(completionTimer)
+      this.completionTimers.delete(taskId)
+    }
+    const idleTimer = this.idleDeferralTimers.get(taskId)
+    if (idleTimer) {
+      clearTimeout(idleTimer)
+      this.idleDeferralTimers.delete(taskId)
+    }
+  }
+
   /**
    * Track a task created elsewhere (e.g., from task) for notification tracking.
    * This allows tasks created by other tools to receive the same toast/prompt notifications.
@@ -932,24 +952,11 @@ export class BackgroundManager {
         task.concurrencyKey = undefined
       }
 
-      const completionTimer = this.completionTimers.get(task.id)
-      if (completionTimer) {
-        clearTimeout(completionTimer)
-        this.completionTimers.delete(task.id)
-      }
-
-      const idleTimer = this.idleDeferralTimers.get(task.id)
-      if (idleTimer) {
-        clearTimeout(idleTimer)
-        this.idleDeferralTimers.delete(task.id)
-      }
+      this.clearTaskTimers(task.id)
 
       this.cleanupPendingByParent(task)
       this.clearNotificationsForTask(task.id)
-      const toastManager = getTaskToastManager()
-      if (toastManager) {
-        toastManager.removeTask(task.id)
-      }
+      removeTaskToastTracking(task.id)
       this.scheduleTaskRemoval(task.id)
       if (task.sessionID) {
         SessionCategoryRegistry.remove(task.sessionID)
@@ -1224,9 +1231,7 @@ export class BackgroundManager {
     const reason = options?.reason
 
     if (task.status === "pending") {
-      const key = task.model
-        ? `${task.model.providerID}/${task.model.modelID}`
-        : task.agent
+      const key = this.getConcurrencyKeyFromTask(task)
       const queue = this.queuesByKey.get(key)
       if (queue) {
         const index = queue.findIndex(item => item.task.id === taskId)
@@ -1253,17 +1258,7 @@ export class BackgroundManager {
       task.concurrencyKey = undefined
     }
 
-    const existingTimer = this.completionTimers.get(task.id)
-    if (existingTimer) {
-      clearTimeout(existingTimer)
-      this.completionTimers.delete(task.id)
-    }
-
-    const idleTimer = this.idleDeferralTimers.get(task.id)
-    if (idleTimer) {
-      clearTimeout(idleTimer)
-      this.idleDeferralTimers.delete(task.id)
-    }
+    this.clearTaskTimers(task.id)
 
     if (abortSession && task.sessionID) {
       this.client.session.abort({
@@ -1291,20 +1286,6 @@ export class BackgroundManager {
       log("[background-agent] Error in notifyParentSession for cancelled task:", { taskId: task.id, error: err })
     }
 
-    return true
-  }
-
-  /**
-   * Cancels a pending task by removing it from queue and marking as cancelled.
-   * Does NOT abort session (no session exists yet) or release concurrency slot (wasn't acquired).
-   */
-  cancelPendingTask(taskId: string): boolean {
-    const task = this.tasks.get(taskId)
-    if (!task || task.status !== "pending") {
-      return false
-    }
-
-    void this.cancelTask(taskId, { source: "cancelPendingTask", abortSession: false })
     return true
   }
 
@@ -1373,11 +1354,7 @@ export class BackgroundManager {
 
     this.markForNotification(task)
 
-    const idleTimer = this.idleDeferralTimers.get(task.id)
-    if (idleTimer) {
-      clearTimeout(idleTimer)
-      this.idleDeferralTimers.delete(task.id)
-    }
+    this.clearTaskTimers(task.id)
 
     if (task.sessionID) {
       this.client.session.abort({
@@ -1398,8 +1375,104 @@ export class BackgroundManager {
     return true
   }
 
-  private async notifyParentSession(task: BackgroundTask): Promise<void> {
+  private buildTaskNotification(
+    task: BackgroundTask,
+    allComplete: boolean,
+    completedTasks: Array<{ id: string; description: string }>,
+    remainingCount: number,
+    duration: string,
+  ): string {
+    const statusText = task.status === "completed"
+      ? "COMPLETED"
+      : task.status === "interrupt"
+        ? "INTERRUPTED"
+        : task.status === "error"
+          ? "ERROR"
+          : "CANCELLED"
+    const errorInfo = task.error ? `\n**Error:** ${task.error}` : ""
 
+    if (allComplete) {
+      const completedTasksText = completedTasks
+        .map(t => `- \`${t.id}\`: ${t.description}`)
+        .join("\n")
+
+      return `<system-reminder>
+[ALL BACKGROUND TASKS COMPLETE]
+
+**Completed:**
+${completedTasksText || `- \`${task.id}\`: ${task.description}`}
+
+Use \`background_output(task_id="<id>")\` to retrieve each result.
+</system-reminder>`
+    }
+
+    return `<system-reminder>
+[BACKGROUND TASK ${statusText}]
+**ID:** \`${task.id}\`
+**Description:** ${task.description}
+**Duration:** ${duration}${errorInfo}
+
+**${remainingCount} task${remainingCount === 1 ? "" : "s"} still in progress.** You WILL be notified when ALL complete.
+Do NOT poll - continue productive work.
+
+Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready.
+</system-reminder>`
+  }
+
+  private async resolveNotificationContext(task: BackgroundTask): Promise<{
+    agent?: string
+    model?: { providerID: string; modelID: string }
+    tools?: Record<string, boolean>
+  }> {
+    let agent: string | undefined = task.parentAgent
+    let model: { providerID: string; modelID: string } | undefined
+    let tools: Record<string, boolean> | undefined = task.parentTools
+
+    try {
+      const messagesResp = await this.client.session.messages({ path: { id: task.parentSessionID } })
+      const messages = normalizeSDKResponse(messagesResp, [] as Array<{
+        info?: {
+          agent?: string
+          model?: { providerID: string; modelID: string }
+          modelID?: string
+          providerID?: string
+          tools?: Record<string, boolean | "allow" | "deny" | "ask">
+        }
+      }>)
+      const promptContext = resolvePromptContextFromSessionMessages(messages, task.parentSessionID)
+      const normalizedTools = isRecord(promptContext?.tools)
+        ? normalizePromptTools(promptContext.tools)
+        : undefined
+
+      if (promptContext?.agent || promptContext?.model || normalizedTools) {
+        agent = promptContext?.agent ?? task.parentAgent
+        model = promptContext?.model?.providerID && promptContext.model.modelID
+          ? { providerID: promptContext.model.providerID, modelID: promptContext.model.modelID }
+          : undefined
+        tools = normalizedTools ?? tools
+      }
+    } catch (error) {
+      if (isAbortedSessionError(error)) {
+        log("[background-agent] Parent session aborted while loading messages; using messageDir fallback:", {
+          taskId: task.id,
+          parentSessionID: task.parentSessionID,
+        })
+      }
+      const messageDir = join(MESSAGE_STORAGE, task.parentSessionID)
+      const currentMessage = messageDir
+        ? findNearestMessageExcludingCompaction(messageDir, task.parentSessionID)
+        : null
+      agent = currentMessage?.agent ?? task.parentAgent
+      model = currentMessage?.model?.providerID && currentMessage?.model?.modelID
+        ? { providerID: currentMessage.model.providerID, modelID: currentMessage.model.modelID }
+        : undefined
+      tools = normalizePromptTools(currentMessage?.tools) ?? tools
+    }
+
+    return { agent, model, tools }
+  }
+
+  private async notifyParentSession(task: BackgroundTask): Promise<void> {
     const duration = formatDuration(task.startedAt ?? new Date(), task.completedAt)
 
     log("[background-agent] notifyParentSession called for task:", task.id)
@@ -1446,133 +1519,51 @@ export class BackgroundManager {
       this.completedTaskSummaries.delete(task.parentSessionID)
     }
 
-    const statusText = task.status === "completed"
-      ? "COMPLETED"
-      : task.status === "interrupt"
-        ? "INTERRUPTED"
-        : task.status === "error"
-          ? "ERROR"
-          : "CANCELLED"
-    const errorInfo = task.error ? `\n**Error:** ${task.error}` : ""
+    const notification = this.buildTaskNotification(task, allComplete, completedTasks, remainingCount, duration)
 
-    let notification: string
-    if (allComplete) {
-        const completedTasksText = completedTasks
-          .map(t => `- \`${t.id}\`: ${t.description}`)
-          .join("\n")
+    if (this.enableParentSessionNotifications) {
+      const { agent, model, tools } = await this.resolveNotificationContext(task)
+      const resolvedTools = resolveInheritedPromptTools(task.parentSessionID, tools)
 
-        notification = `<system-reminder>
-[ALL BACKGROUND TASKS COMPLETE]
+      log("[background-agent] notifyParentSession context:", {
+        taskId: task.id,
+        resolvedAgent: agent,
+        resolvedModel: model,
+      })
 
-**Completed:**
-${completedTasksText || `- \`${task.id}\`: ${task.description}`}
-
-Use \`background_output(task_id="<id>")\` to retrieve each result.
-</system-reminder>`
-    } else {
-      notification = `<system-reminder>
-[BACKGROUND TASK ${statusText}]
-**ID:** \`${task.id}\`
-**Description:** ${task.description}
-**Duration:** ${duration}${errorInfo}
-
-**${remainingCount} task${remainingCount === 1 ? "" : "s"} still in progress.** You WILL be notified when ALL complete.
-Do NOT poll - continue productive work.
-
-Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready.
-</system-reminder>`
-    }
-
-      let agent: string | undefined = task.parentAgent
-      let model: { providerID: string; modelID: string } | undefined
-      let tools: Record<string, boolean> | undefined = task.parentTools
-
-      if (this.enableParentSessionNotifications) {
-        try {
-          const messagesResp = await this.client.session.messages({ path: { id: task.parentSessionID } })
-          const messages = normalizeSDKResponse(messagesResp, [] as Array<{
-            info?: {
-              agent?: string
-              model?: { providerID: string; modelID: string }
-              modelID?: string
-              providerID?: string
-              tools?: Record<string, boolean | "allow" | "deny" | "ask">
-            }
-          }>)
-          const promptContext = resolvePromptContextFromSessionMessages(
-            messages,
-            task.parentSessionID,
-          )
-          const normalizedTools = isRecord(promptContext?.tools)
-            ? normalizePromptTools(promptContext.tools)
-            : undefined
-
-          if (promptContext?.agent || promptContext?.model || normalizedTools) {
-            agent = promptContext?.agent ?? task.parentAgent
-            model = promptContext?.model?.providerID && promptContext.model.modelID
-              ? { providerID: promptContext.model.providerID, modelID: promptContext.model.modelID }
-              : undefined
-            tools = normalizedTools ?? tools
-          }
-        } catch (error) {
-          if (isAbortedSessionError(error)) {
-            log("[background-agent] Parent session aborted while loading messages; using messageDir fallback:", {
-              taskId: task.id,
-              parentSessionID: task.parentSessionID,
-            })
-          }
-          const messageDir = join(MESSAGE_STORAGE, task.parentSessionID)
-          const currentMessage = messageDir
-            ? findNearestMessageExcludingCompaction(messageDir, task.parentSessionID)
-            : null
-          agent = currentMessage?.agent ?? task.parentAgent
-          model = currentMessage?.model?.providerID && currentMessage?.model?.modelID
-            ? { providerID: currentMessage.model.providerID, modelID: currentMessage.model.modelID }
-            : undefined
-          tools = normalizePromptTools(currentMessage?.tools) ?? tools
-        }
-
-        const resolvedTools = resolveInheritedPromptTools(task.parentSessionID, tools)
-
-        log("[background-agent] notifyParentSession context:", {
-          taskId: task.id,
-          resolvedAgent: agent,
-          resolvedModel: model,
-        })
-
-        try {
-          await this.client.session.promptAsync({
-            path: { id: task.parentSessionID },
-            body: {
-              noReply: !allComplete,
-              ...(agent !== undefined ? { agent } : {}),
-              ...(model !== undefined ? { model } : {}),
-              ...(resolvedTools ? { tools: resolvedTools } : {}),
-              parts: [createInternalAgentTextPart(notification)],
-            },
-          })
-          log("[background-agent] Sent notification to parent session:", {
-            taskId: task.id,
-            allComplete,
+      try {
+        await this.client.session.promptAsync({
+          path: { id: task.parentSessionID },
+          body: {
             noReply: !allComplete,
-          })
-        } catch (error) {
-          if (isAbortedSessionError(error)) {
-            log("[background-agent] Parent session aborted while sending notification; continuing cleanup:", {
-              taskId: task.id,
-              parentSessionID: task.parentSessionID,
-            })
-            this.queuePendingNotification(task.parentSessionID, notification)
-          } else {
-            log("[background-agent] Failed to send notification:", error)
-          }
-        }
-      } else {
-        log("[background-agent] Parent session notifications disabled, skipping prompt injection:", {
-          taskId: task.id,
-          parentSessionID: task.parentSessionID,
+            ...(agent !== undefined ? { agent } : {}),
+            ...(model !== undefined ? { model } : {}),
+            ...(resolvedTools ? { tools: resolvedTools } : {}),
+            parts: [createInternalAgentTextPart(notification)],
+          },
         })
+        log("[background-agent] Sent notification to parent session:", {
+          taskId: task.id,
+          allComplete,
+          noReply: !allComplete,
+        })
+      } catch (error) {
+        if (isAbortedSessionError(error)) {
+          log("[background-agent] Parent session aborted while sending notification; continuing cleanup:", {
+            taskId: task.id,
+            parentSessionID: task.parentSessionID,
+          })
+          this.queuePendingNotification(task.parentSessionID, notification)
+        } else {
+          log("[background-agent] Failed to send notification:", error)
+        }
       }
+    } else {
+      log("[background-agent] Parent session notifications disabled, skipping prompt injection:", {
+        taskId: task.id,
+        parentSessionID: task.parentSessionID,
+      })
+    }
 
     if (task.status !== "running" && task.status !== "pending") {
       this.scheduleTaskRemoval(task.id)
@@ -1602,20 +1593,9 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
           task.concurrencyKey = undefined
         }
         removeTaskToastTracking(task.id)
-        const existingTimer = this.completionTimers.get(taskId)
-        if (existingTimer) {
-          clearTimeout(existingTimer)
-          this.completionTimers.delete(taskId)
-        }
-        const idleTimer = this.idleDeferralTimers.get(taskId)
-        if (idleTimer) {
-          clearTimeout(idleTimer)
-          this.idleDeferralTimers.delete(taskId)
-        }
+        this.clearTaskTimers(taskId)
         if (wasPending) {
-          const key = task.model
-            ? `${task.model.providerID}/${task.model.modelID}`
-            : task.agent
+          const key = this.getConcurrencyKeyFromTask(task)
           const queue = this.queuesByKey.get(key)
           if (queue) {
             const index = queue.findIndex((item) => item.task.id === taskId)
@@ -1626,6 +1606,9 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
               }
             }
           }
+        }
+        if (task.sessionID) {
+          SessionCategoryRegistry.remove(task.sessionID)
         }
         this.cleanupPendingByParent(task)
         this.markForNotification(task)
