@@ -21,10 +21,6 @@ import { ConcurrencyManager } from "./concurrency"
 import type { BackgroundTaskConfig, TmuxConfig } from "../../config/schema"
 import { isInsideTmux } from "../../shared/tmux"
 import {
-  shouldRetryError,
-  hasMoreFallbacks,
-} from "../../shared/model-error-classifier"
-import {
   POLLING_INTERVAL_MS,
   TASK_CLEANUP_DELAY_MS,
 } from "./constants"
@@ -48,8 +44,7 @@ import {
 import { handleSessionIdleBackgroundEvent } from "./session-idle-event-handler"
 import { MESSAGE_STORAGE } from "../hook-message-injector"
 import { join } from "node:path"
-import { pruneStaleTasksAndNotifications } from "./task-poller"
-import { checkAndInterruptStaleTasks } from "./task-poller"
+import { pruneStaleTasksAndNotifications, checkAndInterruptStaleTasks } from "./task-poller"
 import { removeTaskToastTracking } from "./remove-task-toast-tracking"
 import {
   createSubagentDepthLimitError,
@@ -103,10 +98,10 @@ export type OnSubagentSessionCreated = (event: SubagentSessionCreatedEvent) => P
 export class BackgroundManager {
 
 
-  private tasks: Map<string, BackgroundTask>
-  private notifications: Map<string, BackgroundTask[]>
-  private pendingNotifications: Map<string, string[]>
-  private pendingByParent: Map<string, Set<string>>
+  private tasks: Map<string, BackgroundTask> = new Map()
+  private notifications: Map<string, BackgroundTask[]> = new Map()
+  private pendingNotifications: Map<string, string[]> = new Map()
+  private pendingByParent: Map<string, Set<string>> = new Map()
   private client: OpencodeClient
   private directory: string
   private pollingInterval?: ReturnType<typeof setInterval>
@@ -124,8 +119,8 @@ export class BackgroundManager {
   private completedTaskSummaries: Map<string, Array<{id: string, description: string}>> = new Map()
   private idleDeferralTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
   private notificationQueueByParent: Map<string, Promise<void>> = new Map()
-  private rootDescendantCounts: Map<string, number>
-  private preStartDescendantReservations: Set<string>
+  private rootDescendantCounts: Map<string, number> = new Map()
+  private preStartDescendantReservations: Set<string> = new Set()
   private enableParentSessionNotifications: boolean
   readonly taskHistory = new TaskHistory()
 
@@ -139,10 +134,6 @@ export class BackgroundManager {
       enableParentSessionNotifications?: boolean
     }
   ) {
-    this.tasks = new Map()
-    this.notifications = new Map()
-    this.pendingNotifications = new Map()
-    this.pendingByParent = new Map()
     this.client = ctx.client
     this.directory = ctx.directory
     this.concurrencyManager = new ConcurrencyManager(config)
@@ -150,10 +141,8 @@ export class BackgroundManager {
     this.tmuxEnabled = options?.tmuxConfig?.enabled ?? false
     this.onSubagentSessionCreated = options?.onSubagentSessionCreated
     this.onShutdown = options?.onShutdown
-    this.rootDescendantCounts = new Map()
-    this.preStartDescendantReservations = new Set()
     this.enableParentSessionNotifications = options?.enableParentSessionNotifications ?? true
-    this.registerProcessCleanup()
+    registerManagerForCleanup(this)
   }
 
   async assertCanSpawn(parentSessionID: string): Promise<SubagentSpawnContext> {
@@ -290,7 +279,7 @@ export class BackgroundManager {
       }
 
       // Add to queue
-      const key = this.getConcurrencyKeyFromInput(input)
+      const key = this.getConcurrencyKey(input)
       const queue = this.queuesByKey.get(key) ?? []
       queue.push({ task, input })
       this.queuesByKey.set(key, queue)
@@ -372,7 +361,7 @@ export class BackgroundManager {
       model: input.model,
     })
 
-    const concurrencyKey = this.getConcurrencyKeyFromInput(input)
+    const concurrencyKey = this.getConcurrencyKey(input)
 
     const parentSession = await this.client.session.get({
       path: { id: input.parentSessionID },
@@ -473,28 +462,16 @@ export class BackgroundManager {
     // Include model if caller provided one (e.g., from Sisyphus category configs)
     // IMPORTANT: variant must be a top-level field in the body, NOT nested inside model
     // OpenCode's PromptInput schema expects: { model: { providerID, modelID }, variant: "max" }
-    const launchModel = input.model
-      ? { providerID: input.model.providerID, modelID: input.model.modelID }
-      : undefined
-    const launchVariant = input.model?.variant
+    const { model, variant } = this.pickModelFields(input)
 
     promptWithModelSuggestionRetry(this.client, {
       path: { id: sessionID },
       body: {
         agent: input.agent,
-        ...(launchModel ? { model: launchModel } : {}),
-        ...(launchVariant ? { variant: launchVariant } : {}),
+        ...(model ? { model } : {}),
+        ...(variant ? { variant } : {}),
         system: input.skillContent,
-        tools: (() => {
-          const tools = {
-            task: false,
-            call_omo_agent: true,
-            question: false,
-            ...getAgentToolRestrictions(input.agent),
-          }
-          setSessionTools(sessionID, tools)
-          return tools
-        })(),
+        tools: this.buildAgentTools(input.agent, sessionID),
         parts: [createInternalAgentTextPart(input.prompt)],
       },
     }).catch((error) => {
@@ -554,18 +531,33 @@ export class BackgroundManager {
     return undefined
   }
 
-  private getConcurrencyKeyFromInput(input: LaunchInput): string {
-    if (input.model) {
-      return `${input.model.providerID}/${input.model.modelID}`
-    }
-    return input.agent
+  private pickModelFields(source: {
+    model?: { providerID: string; modelID: string; variant?: string }
+  }): { model?: { providerID: string; modelID: string }; variant?: string } {
+    const model = source.model
+      ? { providerID: source.model.providerID, modelID: source.model.modelID }
+      : undefined
+    return { model, variant: source.model?.variant }
   }
 
-  private getConcurrencyKeyFromTask(task: BackgroundTask): string {
-    if (task.model) {
-      return `${task.model.providerID}/${task.model.modelID}`
+  private getConcurrencyKey(source: {
+    model?: { providerID: string; modelID: string }; agent: string
+  }): string {
+    if (source.model) {
+      return `${source.model.providerID}/${source.model.modelID}`
     }
-    return task.agent
+    return source.agent
+  }
+
+  private buildAgentTools(agent: string, sessionID: string): Record<string, boolean> {
+    const tools = {
+      task: false,
+      call_omo_agent: true,
+      question: false,
+      ...getAgentToolRestrictions(agent),
+    }
+    setSessionTools(sessionID, tools)
+    return tools
   }
 
   private clearTaskTimers(taskId: string): void {
@@ -702,7 +694,6 @@ export class BackgroundManager {
     existingTask.concurrencyKey = concurrencyKey
     existingTask.concurrencyGroup = concurrencyKey
 
-
     existingTask.status = "running"
     existingTask.completedAt = undefined
     existingTask.error = undefined
@@ -755,27 +746,15 @@ export class BackgroundManager {
     // Fire-and-forget prompt via promptAsync (no response body needed)
     // Include model if task has one (preserved from original launch with category config)
     // variant must be top-level in body, not nested inside model (OpenCode PromptInput schema)
-    const resumeModel = existingTask.model
-      ? { providerID: existingTask.model.providerID, modelID: existingTask.model.modelID }
-      : undefined
-    const resumeVariant = existingTask.model?.variant
+    const { model, variant } = this.pickModelFields(existingTask)
 
     this.client.session.promptAsync({
       path: { id: existingTask.sessionID },
       body: {
         agent: existingTask.agent,
-        ...(resumeModel ? { model: resumeModel } : {}),
-        ...(resumeVariant ? { variant: resumeVariant } : {}),
-        tools: (() => {
-          const tools = {
-            task: false,
-            call_omo_agent: true,
-            question: false,
-            ...getAgentToolRestrictions(existingTask.agent),
-          }
-          setSessionTools(existingTask.sessionID!, tools)
-          return tools
-        })(),
+        ...(model ? { model } : {}),
+        ...(variant ? { variant } : {}),
+        tools: this.buildAgentTools(existingTask.agent, existingTask.sessionID!),
         parts: [createInternalAgentTextPart(input.prompt)],
       },
     }).catch((error) => {
@@ -893,16 +872,11 @@ export class BackgroundManager {
 
       // Original error handling (no retry)
       const errorMsg = errorMessage ?? "Session error"
-      const canRetry =
-        shouldRetryError(errorInfo) &&
-        !!task.fallbackChain &&
-        hasMoreFallbacks(task.fallbackChain, task.attemptCount ?? 0)
       log("[background-agent] Session error - no retry:", {
         taskId: task.id,
         errorName,
         errorMessage: errorMsg?.slice(0, 100),
         hasFallbackChain: !!task.fallbackChain,
-        canRetry,
       })
 
       this.finalizeTask(task, "error", errorMsg)
@@ -951,15 +925,12 @@ export class BackgroundManager {
           void this.cancelTask(task.id, {
             source: "session.deleted",
             reason: "Session deleted",
-          }).then(() => {
-            if (deletedSessionIDs.has(task.parentSessionID)) {
-              this.pendingNotifications.delete(task.parentSessionID)
-            }
           }).catch(err => {
+            log("[background-agent] Failed to cancel task on session.deleted:", { taskId: task.id, error: err })
+          }).finally(() => {
             if (deletedSessionIDs.has(task.parentSessionID)) {
               this.pendingNotifications.delete(task.parentSessionID)
             }
-            log("[background-agent] Failed to cancel task on session.deleted:", { taskId: task.id, error: err })
           })
         }
       }
@@ -1163,7 +1134,7 @@ export class BackgroundManager {
   }
 
   private removePendingTaskFromQueue(task: BackgroundTask): void {
-    const key = this.getConcurrencyKeyFromTask(task)
+    const key = this.getConcurrencyKey(task)
     const queue = this.queuesByKey.get(key)
     if (queue) {
       const index = queue.findIndex(item => item.task.id === task.id)
@@ -1259,14 +1230,6 @@ export class BackgroundManager {
       clearInterval(this.pollingInterval)
       this.pollingInterval = undefined
     }
-  }
-
-  private registerProcessCleanup(): void {
-    registerManagerForCleanup(this)
-  }
-
-  private unregisterProcessCleanup(): void {
-    unregisterManagerForCleanup(this)
   }
 
 
@@ -1381,8 +1344,9 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
 
       if (promptContext?.agent || promptContext?.model || normalizedTools) {
         agent = promptContext?.agent ?? task.parentAgent
-        model = promptContext?.model?.providerID && promptContext.model.modelID
-          ? { providerID: promptContext.model.providerID, modelID: promptContext.model.modelID }
+        const m = promptContext?.model
+        model = (m?.providerID && m.modelID)
+          ? { providerID: m.providerID, modelID: m.modelID }
           : undefined
         tools = normalizedTools ?? tools
       }
@@ -1398,8 +1362,9 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
         ? findNearestMessageExcludingCompaction(messageDir, task.parentSessionID)
         : null
       agent = currentMessage?.agent ?? task.parentAgent
-      model = currentMessage?.model?.providerID && currentMessage?.model?.modelID
-        ? { providerID: currentMessage.model.providerID, modelID: currentMessage.model.modelID }
+      const m = currentMessage?.model
+      model = (m?.providerID && m.modelID)
+        ? { providerID: m.providerID, modelID: m.modelID }
         : undefined
       tools = normalizePromptTools(currentMessage?.tools) ?? tools
     }
@@ -1557,7 +1522,7 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     if (this.pollingInFlight) return
     this.pollingInFlight = true
     try {
-    this.pruneStaleTasksAndNotifications()
+      this.pruneStaleTasksAndNotifications()
 
     const statusResult = await this.client.session.status()
     const allStatuses = normalizeSDKResponse(statusResult, {} as Record<string, { type: string }>)
@@ -1642,16 +1607,19 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     this.stopPolling()
     const trackedSessionIDs = new Set<string>()
 
-    // Abort all running sessions to prevent zombie processes (#1240)
+    // Abort running sessions, track session IDs, and release concurrency
     for (const task of this.tasks.values()) {
       if (task.sessionID) {
         trackedSessionIDs.add(task.sessionID)
       }
-
       if (task.status === "running" && task.sessionID) {
         this.client.session.abort({
           path: { id: task.sessionID },
         }).catch(() => {})
+      }
+      if (task.concurrencyKey) {
+        this.concurrencyManager.release(task.concurrencyKey)
+        task.concurrencyKey = undefined
       }
     }
 
@@ -1661,14 +1629,6 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
         await this.onShutdown()
       } catch (error) {
         log("[background-agent] Error in onShutdown callback:", error)
-      }
-    }
-
-    // Release concurrency for all running tasks
-    for (const task of this.tasks.values()) {
-      if (task.concurrencyKey) {
-        this.concurrencyManager.release(task.concurrencyKey)
-        task.concurrencyKey = undefined
       }
     }
 
@@ -1698,7 +1658,7 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     this.processingKeys.clear()
     this.taskHistory.clearAll()
     this.completedTaskSummaries.clear()
-    this.unregisterProcessCleanup()
+    unregisterManagerForCleanup(this)
     log("[background-agent] Shutdown complete")
 
   }
