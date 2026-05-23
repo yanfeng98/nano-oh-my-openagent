@@ -141,9 +141,16 @@ function getCompletionTimers(manager: BackgroundManager): Map<string, ReturnType
   return Reflect.get(manager, "completionTimers") as Map<string, ReturnType<typeof setTimeout>>
 }
 
-async function notifyParentSessionForTest(manager: BackgroundManager, task: BackgroundTask): Promise<void> {
-  const notifyParentSession = Reflect.get(manager, "notifyParentSession") as (task: BackgroundTask) => Promise<void>
-  return notifyParentSession.call(manager, task)
+function finalizeTaskForTest(manager: BackgroundManager, task: BackgroundTask, status: string, error?: string): void {
+  const finalizeTask = Reflect.get(manager, "finalizeTask") as (task: BackgroundTask, status: string, error?: string) => void
+  finalizeTask.call(manager, task, status, error)
+}
+
+async function handleTaskCompletionForTest(manager: BackgroundManager, task: BackgroundTask): Promise<void> {
+  // Match real flow: finalizeTask must be called first to clean up pendingByParent etc.
+  finalizeTaskForTest(manager, task, task.status)
+  const handleTaskCompletion = Reflect.get(manager, "handleTaskCompletion") as (task: BackgroundTask) => Promise<void>
+  return handleTaskCompletion.call(manager, task)
 }
 
 function getRequiredTimer(manager: BackgroundManager, taskID: string): ReturnType<typeof setTimeout> {
@@ -156,7 +163,7 @@ function getRequiredTimer(manager: BackgroundManager, taskID: string): ReturnTyp
   return timer
 }
 
-describe("BackgroundManager.notifyParentSession cleanup scheduling", () => {
+describe("BackgroundManager.handleTaskCompletion cleanup scheduling", () => {
   describe("#given 2 tasks for same parent and task A completed", () => {
     test("#when task B is still running #then task A is cleaned up from this.tasks after delay even though task B is not done", async () => {
       // given
@@ -170,7 +177,7 @@ describe("BackgroundManager.notifyParentSession cleanup scheduling", () => {
       getPendingByParent(manager).set(taskA.parentSessionID, new Set([taskA.id, taskB.id]))
 
       // when
-      await notifyParentSessionForTest(manager, taskA)
+      await handleTaskCompletionForTest(manager, taskA)
       const taskATimer = getRequiredTimer(manager, taskA.id)
       expect(fakeTimers.getDelay(taskATimer)).toBe(TASK_CLEANUP_DELAY_MS)
       fakeTimers.run(taskATimer)
@@ -194,12 +201,12 @@ describe("BackgroundManager.notifyParentSession cleanup scheduling", () => {
       getTasks(manager).set(taskB.id, taskB)
       getPendingByParent(manager).set(taskA.parentSessionID, new Set([taskA.id, taskB.id]))
 
-      await notifyParentSessionForTest(manager, taskA)
+      await handleTaskCompletionForTest(manager, taskA)
       taskB.status = "completed"
       taskB.completedAt = new Date("2026-03-11T00:02:00.000Z")
 
       // when
-      await notifyParentSessionForTest(manager, taskB)
+      await handleTaskCompletionForTest(manager, taskB)
 
       // then
       expect(promptAsyncCalls).toHaveLength(2)
@@ -230,7 +237,7 @@ describe("BackgroundManager.notifyParentSession cleanup scheduling", () => {
       getTasks(manager).set(task.id, task)
       getPendingByParent(manager).set(task.parentSessionID, new Set([task.id]))
 
-      await notifyParentSessionForTest(manager, task)
+      await handleTaskCompletionForTest(manager, task)
       const cleanupTimer = getRequiredTimer(manager, task.id)
 
       // when
