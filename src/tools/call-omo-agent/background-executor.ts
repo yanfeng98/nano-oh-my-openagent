@@ -1,47 +1,21 @@
-import type { CallOmoAgentArgs } from "./types"
+import type { CallOmoAgentArgs, ToolContextWithMetadata } from "./types"
 import type { BackgroundManager } from "../../features/background-agent"
 import type { PluginInput } from "@opencode-ai/plugin"
 import { log } from "../../shared"
 import type { FallbackEntry } from "../../shared/model-requirements"
-import { resolveMessageContext } from "../../features/hook-message-injector"
 import { getSessionAgent } from "../../features/claude-code-session-state"
-import { getMessageDir } from "./message-dir"
 import { getSessionTools } from "../../shared/session-tools-store"
 
 export async function executeBackground(
   args: CallOmoAgentArgs,
-  toolContext: {
-    sessionID: string
-    messageID: string
-    agent: string
-    abort: AbortSignal
-    metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
-  },
+  toolContext: ToolContextWithMetadata,
   manager: BackgroundManager,
   client: PluginInput["client"],
   model?: { providerID: string; modelID: string; variant?: string },
   fallbackChain?: FallbackEntry[],
 ): Promise<string> {
   try {
-    const messageDir = getMessageDir(toolContext.sessionID)
-    const { prevMessage, firstMessageAgent } = await resolveMessageContext(
-      toolContext.sessionID,
-      client,
-      messageDir
-    )
-
-    const sessionAgent = getSessionAgent(toolContext.sessionID)
-    const parentAgent = toolContext.agent ?? sessionAgent ?? firstMessageAgent ?? prevMessage?.agent
-    
-    log("[call_omo_agent] parentAgent resolution", {
-      sessionID: toolContext.sessionID,
-      messageDir,
-      ctxAgent: toolContext.agent,
-      sessionAgent,
-      firstMessageAgent,
-      prevMessageAgent: prevMessage?.agent,
-      resolvedParentAgent: parentAgent,
-    })
+    const parentAgent = toolContext.agent ?? getSessionAgent(toolContext.sessionID)
 
     const task = await manager.launch({
       description: args.description,

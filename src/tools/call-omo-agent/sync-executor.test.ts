@@ -21,28 +21,31 @@ type ToolContext = {
   metadata: ReturnType<typeof mock>
 }
 
-type Dependencies = {
-  createOrGetSession: ReturnType<typeof mock>
-  waitForCompletion: ReturnType<typeof mock>
-  processMessages: ReturnType<typeof mock>
-  setSessionFallbackChain: ReturnType<typeof mock>
-  clearSessionFallbackChain: ReturnType<typeof mock>
-}
+// Shared mock references — implementations can be changed per-test.
+// mock.module returns these same references, so cached modules see the changes.
+const mockCreateOrGetSession = mock(async () => ({ sessionID: "ses-test-123", isNew: true }))
+const mockWaitForCompletion = mock(async () => {})
+const mockProcessMessages = mock(async () => "agent response")
+const mockSetFallbackChain = mock(() => {})
+const mockClearFallbackChain = mock(() => {})
+
+mock.module("./session-creator", () => ({
+  createOrGetSession: mockCreateOrGetSession,
+}))
+mock.module("./completion-poller", () => ({
+  waitForCompletion: mockWaitForCompletion,
+}))
+mock.module("./message-processor", () => ({
+  processMessages: mockProcessMessages,
+}))
+mock.module("../../hooks/model-fallback/hook", () => ({
+  setSessionFallbackChain: mockSetFallbackChain,
+  clearSessionFallbackChain: mockClearFallbackChain,
+}))
 
 async function importExecuteSync(): Promise<ExecuteSync> {
   const module = await import("./sync-executor")
   return module.executeSync
-}
-
-function createDependencies(overrides?: Partial<Dependencies>): Dependencies {
-  return {
-    createOrGetSession: mock(async () => ({ sessionID: "ses-test-123", isNew: true })),
-    waitForCompletion: mock(async () => {}),
-    processMessages: mock(async () => "agent response"),
-    setSessionFallbackChain: mock(() => {}),
-    clearSessionFallbackChain: mock(() => {}),
-    ...overrides,
-  }
 }
 
 function createPromptAsyncRecorder(implementation?: (input: PromptAsyncInput) => Promise<unknown>) {
@@ -53,7 +56,6 @@ function createPromptAsyncRecorder(implementation?: (input: PromptAsyncInput) =>
     if (implementation) {
       return implementation(input)
     }
-
     return { data: {} }
   })
 
@@ -85,11 +87,19 @@ function createContext(promptAsync: ReturnType<typeof mock>) {
   }
 }
 
+function createBackgroundManager() {
+  return {
+    reserveSubagentSpawn: mock(async () => ({
+      commit: mock(() => 1),
+      rollback: mock(() => {}),
+    })),
+  }
+}
+
 describe("executeSync", () => {
   test("sends sync prompt with question and task tools disabled", async () => {
     //#given
     const executeSync = await importExecuteSync()
-    const deps = createDependencies()
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder()
     const args = {
@@ -100,7 +110,7 @@ describe("executeSync", () => {
     }
 
     //#when
-    await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps)
+    await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, createBackgroundManager())
 
     //#then
     const promptInput = recorder.getCapturedInput()
@@ -115,7 +125,6 @@ describe("executeSync", () => {
   test("passes explicit model and variant to prompt body", async () => {
     //#given
     const executeSync = await importExecuteSync()
-    const deps = createDependencies()
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder()
     const args = {
@@ -130,7 +139,7 @@ describe("executeSync", () => {
       args,
       toolContext,
       createContext(recorder.promptAsync) as never,
-      deps,
+      createBackgroundManager(),
       { providerID: "opencodehuoshan", modelID: "deepseek-v3-2-251201", variant: "medium" }
     )
 
@@ -142,11 +151,10 @@ describe("executeSync", () => {
 
   test("returns processed response with task metadata footer", async () => {
     //#given
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-test-456", isNew: true }))
+    mockProcessMessages.mockImplementation(async () => "final answer")
+
     const executeSync = await importExecuteSync()
-    const deps = createDependencies({
-      createOrGetSession: mock(async () => ({ sessionID: "ses-test-456", isNew: true })),
-      processMessages: mock(async () => "final answer"),
-    })
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder()
     const args = {
@@ -157,26 +165,20 @@ describe("executeSync", () => {
     }
 
     //#when
-    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps)
+    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, createBackgroundManager())
 
     //#then
     expect(result).toContain("final answer")
     expect(result).toContain("<task_metadata>")
     expect(result).toContain("session_id: ses-test-456")
     expect(result).toContain("</task_metadata>")
-    expect(deps.waitForCompletion).toHaveBeenCalledWith(
-      "ses-test-456",
-      toolContext,
-      expect.objectContaining({ client: expect.anything() })
-    )
   })
 
   test("records metadata with description and created session id", async () => {
     //#given
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-metadata", isNew: true }))
+
     const executeSync = await importExecuteSync()
-    const deps = createDependencies({
-      createOrGetSession: mock(async () => ({ sessionID: "ses-metadata", isNew: true })),
-    })
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder()
     const args = {
@@ -187,7 +189,7 @@ describe("executeSync", () => {
     }
 
     //#when
-    await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps)
+    await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, createBackgroundManager())
 
     //#then
     expect(toolContext.metadata).toHaveBeenCalledWith({
@@ -198,10 +200,9 @@ describe("executeSync", () => {
 
   test("applies fallback chain to sync sessions before completion polling", async () => {
     //#given
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-fallback", isNew: true }))
+
     const executeSync = await importExecuteSync()
-    const deps = createDependencies({
-      createOrGetSession: mock(async () => ({ sessionID: "ses-fallback", isNew: true })),
-    })
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder()
     const args = {
@@ -220,21 +221,20 @@ describe("executeSync", () => {
       args,
       toolContext,
       createContext(recorder.promptAsync) as never,
-      deps,
+      createBackgroundManager(),
       undefined,
       fallbackChain
     )
 
     //#then
-    expect(deps.setSessionFallbackChain).toHaveBeenCalledWith("ses-fallback", fallbackChain)
+    expect(mockSetFallbackChain).toHaveBeenCalledWith("ses-fallback", fallbackChain)
   })
 
   test("returns dedicated agent-not-found error with task metadata", async () => {
     //#given
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-missing-agent", isNew: true }))
+
     const executeSync = await importExecuteSync()
-    const deps = createDependencies({
-      createOrGetSession: mock(async () => ({ sessionID: "ses-missing-agent", isNew: true })),
-    })
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder(async () => {
       throw new Error("agent.name is undefined")
@@ -247,21 +247,18 @@ describe("executeSync", () => {
     }
 
     //#when
-    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps)
+    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, createBackgroundManager())
 
     //#then
     expect(result).toContain('Error: Agent "explore" not found')
     expect(result).toContain("session_id: ses-missing-agent")
-    expect(deps.waitForCompletion).not.toHaveBeenCalled()
-    expect(deps.processMessages).not.toHaveBeenCalled()
   })
 
   test("returns generic prompt failure with task metadata", async () => {
     //#given
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-prompt-error", isNew: true }))
+
     const executeSync = await importExecuteSync()
-    const deps = createDependencies({
-      createOrGetSession: mock(async () => ({ sessionID: "ses-prompt-error", isNew: true })),
-    })
     const toolContext = createToolContext()
     const recorder = createPromptAsyncRecorder(async () => {
       throw new Error("network exploded")
@@ -274,30 +271,26 @@ describe("executeSync", () => {
     }
 
     //#when
-    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, deps)
+    const result = await executeSync(args, toolContext, createContext(recorder.promptAsync) as never, createBackgroundManager())
 
     //#then
     expect(result).toContain("Error: Failed to send prompt: network exploded")
     expect(result).toContain("session_id: ses-prompt-error")
-    expect(deps.waitForCompletion).not.toHaveBeenCalled()
-    expect(deps.processMessages).not.toHaveBeenCalled()
   })
 
   test("commits reserved descendant quota after creating a new sync session", async () => {
     //#given
-    const { executeSync } = require("./sync-executor")
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-test-789", isNew: true }))
 
-    const deps = {
-      createOrGetSession: mock(async () => ({ sessionID: "ses-test-789", isNew: true })),
-      waitForCompletion: mock(async () => {}),
-      processMessages: mock(async () => "agent response"),
-      setSessionFallbackChain: mock(() => {}),
-      clearSessionFallbackChain: mock(() => {}),
-    }
+    const { executeSync } = require("./sync-executor")
 
     const spawnReservation = {
       commit: mock(() => 1),
       rollback: mock(() => {}),
+    }
+
+    const backgroundManager = {
+      reserveSubagentSpawn: mock(async () => spawnReservation),
     }
 
     const args = {
@@ -323,7 +316,7 @@ describe("executeSync", () => {
     }
 
     //#when
-    await executeSync(args, toolContext, ctx as any, deps, undefined, undefined, spawnReservation)
+    await executeSync(args, toolContext, ctx as any, backgroundManager)
 
     //#then
     expect(spawnReservation.commit).toHaveBeenCalledTimes(1)

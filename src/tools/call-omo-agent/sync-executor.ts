@@ -1,5 +1,6 @@
-import type { CallOmoAgentArgs } from "./types"
+import type { CallOmoAgentArgs, ToolContextWithMetadata } from "./types"
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { BackgroundManager } from "../../features/background-agent"
 import { subagentSessions, syncSubagentSessions } from "../../features/claude-code-session-state"
 import { clearSessionFallbackChain, setSessionFallbackChain } from "../../hooks/model-fallback/hook"
 import { getAgentToolRestrictions, log } from "../../shared"
@@ -12,48 +13,25 @@ type SessionWithPromptAsync = {
   promptAsync: (opts: { path: { id: string }; body: Record<string, unknown> }) => Promise<unknown>
 }
 
-type ExecuteSyncDeps = {
-  createOrGetSession: typeof createOrGetSession
-  waitForCompletion: typeof waitForCompletion
-  processMessages: typeof processMessages
-  setSessionFallbackChain: typeof setSessionFallbackChain
-  clearSessionFallbackChain: typeof clearSessionFallbackChain
-}
-
-type SpawnReservation = {
-  commit: () => number
-  rollback: () => void
-}
-
-const defaultDeps: ExecuteSyncDeps = {
-  createOrGetSession,
-  waitForCompletion,
-  processMessages,
-  setSessionFallbackChain,
-  clearSessionFallbackChain,
-}
-
 export async function executeSync(
   args: CallOmoAgentArgs,
-  toolContext: {
-    sessionID: string
-    messageID: string
-    agent: string
-    abort: AbortSignal
-    metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void | Promise<void>
-  },
+  toolContext: ToolContextWithMetadata,
   ctx: PluginInput,
-  deps: ExecuteSyncDeps = defaultDeps,
+  backgroundManager: BackgroundManager,
   model?: { providerID: string; modelID: string; variant?: string },
   fallbackChain?: FallbackEntry[],
-  spawnReservation?: SpawnReservation,
 ): Promise<string> {
   let sessionID: string | undefined
   let createdSessionForExecution = false
   let appliedFallbackChain = false
+  let spawnReservation: Awaited<ReturnType<BackgroundManager["reserveSubagentSpawn"]>> | undefined
 
   try {
-    const session = await deps.createOrGetSession(args, toolContext, ctx)
+    if (!args.session_id) {
+      spawnReservation = await backgroundManager.reserveSubagentSpawn(toolContext.sessionID)
+    }
+
+    const session = await createOrGetSession(args, toolContext, ctx)
     sessionID = session.sessionID
     createdSessionForExecution = session.isNew
     subagentSessions.add(sessionID)
@@ -64,7 +42,7 @@ export async function executeSync(
     }
 
     if (fallbackChain && fallbackChain.length > 0) {
-      deps.setSessionFallbackChain(sessionID, fallbackChain)
+      setSessionFallbackChain(sessionID, fallbackChain)
       appliedFallbackChain = true
     }
 
@@ -104,9 +82,9 @@ export async function executeSync(
       return `Error: Failed to send prompt: ${errorMessage}\n\n<task_metadata>\nsession_id: ${sessionID}\n</task_metadata>`
     }
 
-    await deps.waitForCompletion(sessionID, toolContext, ctx)
+    await waitForCompletion(sessionID, toolContext, ctx)
 
-    const responseText = await deps.processMessages(sessionID, ctx)
+    const responseText = await processMessages(sessionID, ctx)
 
     return responseText + "\n\n" + ["<task_metadata>", `session_id: ${sessionID}`, "</task_metadata>"].join("\n")
   } catch (error) {
@@ -114,7 +92,7 @@ export async function executeSync(
     throw error
   } finally {
     if (sessionID && appliedFallbackChain) {
-      deps.clearSessionFallbackChain(sessionID)
+      clearSessionFallbackChain(sessionID)
     }
 
     if (sessionID && createdSessionForExecution) {

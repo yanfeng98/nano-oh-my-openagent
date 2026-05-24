@@ -462,7 +462,10 @@ export class BackgroundManager {
     // Include model if caller provided one (e.g., from Sisyphus category configs)
     // IMPORTANT: variant must be a top-level field in the body, NOT nested inside model
     // OpenCode's PromptInput schema expects: { model: { providerID, modelID }, variant: "max" }
-    const { model, variant } = this.pickModelFields(input)
+    const model = input.model
+      ? { providerID: input.model.providerID, modelID: input.model.modelID }
+      : undefined
+    const variant = input.model?.variant
 
     promptWithModelSuggestionRetry(this.client, {
       path: { id: sessionID },
@@ -529,15 +532,6 @@ export class BackgroundManager {
       }
     }
     return undefined
-  }
-
-  private pickModelFields(source: {
-    model?: { providerID: string; modelID: string; variant?: string }
-  }): { model?: { providerID: string; modelID: string }; variant?: string } {
-    const model = source.model
-      ? { providerID: source.model.providerID, modelID: source.model.modelID }
-      : undefined
-    return { model, variant: source.model?.variant }
   }
 
   private getConcurrencyKey(source: {
@@ -746,7 +740,10 @@ export class BackgroundManager {
     // Fire-and-forget prompt via promptAsync (no response body needed)
     // Include model if task has one (preserved from original launch with category config)
     // variant must be top-level in body, not nested inside model (OpenCode PromptInput schema)
-    const { model, variant } = this.pickModelFields(existingTask)
+    const model = existingTask.model
+      ? { providerID: existingTask.model.providerID, modelID: existingTask.model.modelID }
+      : undefined
+    const variant = existingTask.model?.variant
 
     this.client.session.promptAsync({
       path: { id: existingTask.sessionID },

@@ -54,7 +54,6 @@ export function createToolRegistry(args: {
     managers.backgroundManager,
     pluginConfig.disabled_agents ?? [],
     pluginConfig.agents,
-    pluginConfig.categories,
   )
 
   const isMultimodalLookerEnabled = !(pluginConfig.disabled_agents ?? []).some(

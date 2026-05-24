@@ -2,12 +2,10 @@ import { tool, type PluginInput, type ToolDefinition } from "@opencode-ai/plugin
 import { ALLOWED_AGENTS, CALL_OMO_AGENT_DESCRIPTION } from "./constants"
 import type { AllowedAgentType, CallOmoAgentArgs, ToolContextWithMetadata } from "./types"
 import type { BackgroundManager } from "../../features/background-agent"
-import type { CategoriesConfig, AgentOverrides } from "../../config/schema"
+import type { AgentOverrides } from "../../config/schema"
 import type { FallbackEntry } from "../../shared/model-requirements"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
-import { normalizeFallbackModels } from "../../shared/model-resolver"
-import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models"
 import { normalizeModelFormat } from "../../shared/model-format-normalizer"
 import { log } from "../../shared"
 import { executeBackground } from "./background-executor"
@@ -16,39 +14,23 @@ import { executeSync } from "./sync-executor"
 function resolveModelConfigForCallOmoAgent(args: {
   subagentType: string
   agentOverrides?: AgentOverrides
-  userCategories?: CategoriesConfig
-}): { model?: string; variant?: string; fallbackChain?: FallbackEntry[] } {
-  const { subagentType, agentOverrides, userCategories } = args
-  const agentConfigKey = getAgentConfigKey(subagentType)
+}): {
+  model?: { providerID: string; modelID: string; variant?: string }
+  fallbackChain?: FallbackEntry[]
+} {
+  const agentConfigKey = getAgentConfigKey(args.subagentType)
   const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey]
+  const override = args.agentOverrides?.[agentConfigKey as keyof AgentOverrides]
 
-  const agentOverride = agentOverrides?.[agentConfigKey as keyof AgentOverrides]
-    ?? (agentOverrides
-      ? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentConfigKey)?.[1]
-      : undefined)
-
-  const inheritedCategory = agentOverride?.category
-    ? userCategories?.[agentOverride.category]
-    : undefined
-  const normalizedFallbackModels = normalizeFallbackModels(
-    agentOverride?.fallback_models
-    ?? inheritedCategory?.fallback_models
-  )
-  const defaultProviderID = agentRequirement?.fallbackChain?.[0]?.providers?.[0] ?? "opencode"
-  const configuredFallbackChain = buildFallbackChainFromModels(normalizedFallbackModels, defaultProviderID)
-
-  return {
-    model: agentOverride?.model ?? inheritedCategory?.model,
-    variant: agentOverride?.variant ?? inheritedCategory?.variant,
-    fallbackChain: configuredFallbackChain ?? agentRequirement?.fallbackChain,
+  let model: { providerID: string; modelID: string; variant?: string } | undefined
+  if (override?.model) {
+    const normalized = normalizeModelFormat(override.model)
+    if (normalized) {
+      model = override.variant ? { ...normalized, variant: override.variant } : normalized
+    }
   }
-}
 
-function normalizeResolvedModel(model: string | undefined, variant: string | undefined) {
-  if (!model) return undefined
-  const normalized = normalizeModelFormat(model)
-  if (!normalized) return undefined
-  return variant ? { ...normalized, variant } : normalized
+  return { model, fallbackChain: agentRequirement?.fallbackChain }
 }
 
 export function createCallOmoAgent(
@@ -56,7 +38,6 @@ export function createCallOmoAgent(
   backgroundManager: BackgroundManager,
   disabledAgents: string[] = [],
   agentOverrides?: AgentOverrides,
-  userCategories?: CategoriesConfig,
 ): ToolDefinition {
   const agentDescriptions = ALLOWED_AGENTS.map(
     (name) => `- ${name}: Specialized agent for ${name} tasks`
@@ -98,29 +79,16 @@ export function createCallOmoAgent(
       const modelConfig = resolveModelConfigForCallOmoAgent({
         subagentType: args.subagent_type,
         agentOverrides,
-        userCategories,
       })
-      const resolvedModel = normalizeResolvedModel(modelConfig.model, modelConfig.variant)
 
       if (args.run_in_background) {
         if (args.session_id) {
           return `Error: session_id is not supported in background mode. Use run_in_background=false to continue an existing session.`
         }
-        return await executeBackground(args, toolCtx, backgroundManager, ctx.client, resolvedModel, modelConfig.fallbackChain)
+        return await executeBackground(args, toolCtx, backgroundManager, ctx.client, modelConfig.model, modelConfig.fallbackChain)
       }
 
-      if (!args.session_id) {
-        let spawnReservation: Awaited<ReturnType<BackgroundManager["reserveSubagentSpawn"]>> | undefined
-        try {
-          spawnReservation = await backgroundManager.reserveSubagentSpawn(toolCtx.sessionID)
-          return await executeSync(args, toolCtx, ctx, undefined, resolvedModel, modelConfig.fallbackChain, spawnReservation)
-        } catch (error) {
-          spawnReservation?.rollback()
-          return `Error: ${error instanceof Error ? error.message : String(error)}`
-        }
-      }
-
-      return await executeSync(args, toolCtx, ctx, undefined, resolvedModel, modelConfig.fallbackChain)
+      return await executeSync(args, toolCtx, ctx, backgroundManager, modelConfig.model, modelConfig.fallbackChain)
     },
   })
 }

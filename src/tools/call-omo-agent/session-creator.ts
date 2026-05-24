@@ -1,17 +1,10 @@
-import type { CallOmoAgentArgs } from "./types"
+import type { CallOmoAgentArgs, ToolContextWithMetadata } from "./types"
 import type { PluginInput } from "@opencode-ai/plugin"
-import { subagentSessions, syncSubagentSessions } from "../../features/claude-code-session-state"
 import { log } from "../../shared"
 
 export async function createOrGetSession(
   args: CallOmoAgentArgs,
-  toolContext: {
-    sessionID: string
-    messageID: string
-    agent: string
-    abort: AbortSignal
-    metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
-  },
+  toolContext: ToolContextWithMetadata,
   ctx: PluginInput
 ): Promise<{ sessionID: string; isNew: boolean }> {
   if (args.session_id) {
@@ -63,8 +56,6 @@ Original error: ${createResult.error}`)
 
     const sessionID = createResult.data.id
     log(`[call_omo_agent] Created session: ${sessionID}`)
-    subagentSessions.add(sessionID)
-    syncSubagentSessions.add(sessionID)
     return { sessionID, isNew: true }
   }
 }

@@ -8,7 +8,27 @@ import { executeSync } from "./sync-executor"
 
 type ExecuteSyncArgs = Parameters<typeof executeSync>[0]
 type ExecuteSyncToolContext = Parameters<typeof executeSync>[1]
-type ExecuteSyncDeps = NonNullable<Parameters<typeof executeSync>[3]>
+
+// Shared mock references — implementations can be changed per-test.
+const mockCreateOrGetSession = mock(async () => ({ sessionID: "ses-default", isNew: true }))
+const mockWaitForCompletion = mock(async () => {})
+const mockProcessMessages = mock(async () => "agent response")
+const mockSetFallbackChain = mock(() => {})
+const mockClearFallbackChain = mock(() => {})
+
+mock.module("./session-creator", () => ({
+  createOrGetSession: mockCreateOrGetSession,
+}))
+mock.module("./completion-poller", () => ({
+  waitForCompletion: mockWaitForCompletion,
+}))
+mock.module("./message-processor", () => ({
+  processMessages: mockProcessMessages,
+}))
+mock.module("../../hooks/model-fallback/hook", () => ({
+  setSessionFallbackChain: mockSetFallbackChain,
+  clearSessionFallbackChain: mockClearFallbackChain,
+}))
 
 function createArgs(): ExecuteSyncArgs {
   return {
@@ -39,20 +59,22 @@ function createContext(promptAsync: ReturnType<typeof mock>) {
   }
 }
 
-function createDependencies(overrides?: Partial<ExecuteSyncDeps>): ExecuteSyncDeps {
-  return {
-    createOrGetSession: mock(async () => ({ sessionID: "ses-default", isNew: true })),
-    waitForCompletion: mock(async () => {}),
-    processMessages: mock(async () => "agent response"),
-    setSessionFallbackChain: mock(() => {}),
-    clearSessionFallbackChain: mock(() => {}),
-    ...overrides,
-  }
+const mockBackgroundManager = {
+  reserveSubagentSpawn: mock(async () => ({
+    commit: mock(() => 1),
+    rollback: mock(() => {}),
+  })),
 }
 
 describe("executeSync session cleanup", () => {
   beforeEach(() => {
     _resetForTesting()
+    // Reset mock implementations to defaults
+    mockCreateOrGetSession.mockImplementation(async () => ({ sessionID: "ses-default", isNew: true }))
+    mockWaitForCompletion.mockImplementation(async () => {})
+    mockProcessMessages.mockImplementation(async () => "agent response")
+    mockSetFallbackChain.mockImplementation(() => {})
+    mockClearFallbackChain.mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -63,27 +85,22 @@ describe("executeSync session cleanup", () => {
     test("#when execution completes successfully #then sessionID is removed from subagentSessions and syncSubagentSessions", async () => {
       // given
       const sessionID = "ses-cleanup-success"
+      mockCreateOrGetSession.mockImplementation(async () => ({ sessionID, isNew: true }))
+      mockWaitForCompletion.mockImplementation(async (createdSessionID: string) => {
+        expect(createdSessionID).toBe(sessionID)
+        expect(subagentSessions.has(sessionID)).toBe(true)
+        expect(syncSubagentSessions.has(sessionID)).toBe(true)
+      })
+
       const args = createArgs()
       const toolContext = createToolContext()
       const promptAsync = mock(async () => ({ data: {} }))
-      const deps = createDependencies({
-        createOrGetSession: mock(async () => {
-          subagentSessions.add(sessionID)
-          syncSubagentSessions.add(sessionID)
-          return { sessionID, isNew: true }
-        }),
-        waitForCompletion: mock(async (createdSessionID: string) => {
-          expect(createdSessionID).toBe(sessionID)
-          expect(subagentSessions.has(sessionID)).toBe(true)
-          expect(syncSubagentSessions.has(sessionID)).toBe(true)
-        }),
-      })
 
       expect(subagentSessions.has(sessionID)).toBe(false)
       expect(syncSubagentSessions.has(sessionID)).toBe(false)
 
       // when
-      const result = await executeSync(args, toolContext, createContext(promptAsync) as never, deps)
+      const result = await executeSync(args, toolContext, createContext(promptAsync) as never, mockBackgroundManager)
 
       // then
       expect(result).toContain(`session_id: ${sessionID}`)
@@ -94,25 +111,20 @@ describe("executeSync session cleanup", () => {
     test("#when execution throws an error #then sessionID is still removed from both Sets", async () => {
       // given
       const sessionID = "ses-cleanup-error"
+      mockCreateOrGetSession.mockImplementation(async () => ({ sessionID, isNew: true }))
+      mockWaitForCompletion.mockImplementation(async (createdSessionID: string) => {
+        expect(createdSessionID).toBe(sessionID)
+        expect(subagentSessions.has(sessionID)).toBe(true)
+        expect(syncSubagentSessions.has(sessionID)).toBe(true)
+        throw new Error("poll exploded")
+      })
+
       const args = createArgs()
       const toolContext = createToolContext()
       const promptAsync = mock(async () => ({ data: {} }))
-      const deps = createDependencies({
-        createOrGetSession: mock(async () => {
-          subagentSessions.add(sessionID)
-          syncSubagentSessions.add(sessionID)
-          return { sessionID, isNew: true }
-        }),
-        waitForCompletion: mock(async (createdSessionID: string) => {
-          expect(createdSessionID).toBe(sessionID)
-          expect(subagentSessions.has(sessionID)).toBe(true)
-          expect(syncSubagentSessions.has(sessionID)).toBe(true)
-          throw new Error("poll exploded")
-        }),
-      })
 
       // when
-      const resultPromise = executeSync(args, toolContext, createContext(promptAsync) as never, deps)
+      const resultPromise = executeSync(args, toolContext, createContext(promptAsync) as never, mockBackgroundManager)
 
       // then
       let thrownError: Error | undefined
@@ -137,23 +149,22 @@ describe("executeSync session cleanup", () => {
     test("#when execution completes successfully #then the reused session is tracked in both Sets", async () => {
       // given
       const sessionID = "ses-reused"
+      mockCreateOrGetSession.mockImplementation(async () => ({ sessionID, isNew: false }))
+      mockWaitForCompletion.mockImplementation(async (createdSessionID: string) => {
+        expect(createdSessionID).toBe(sessionID)
+        expect(subagentSessions.has(sessionID)).toBe(true)
+        expect(syncSubagentSessions.has(sessionID)).toBe(true)
+      })
+
       const args = { ...createArgs(), session_id: sessionID }
       const toolContext = createToolContext()
       const promptAsync = mock(async () => ({ data: {} }))
-      const deps = createDependencies({
-        createOrGetSession: mock(async () => ({ sessionID, isNew: false })),
-        waitForCompletion: mock(async (createdSessionID: string) => {
-          expect(createdSessionID).toBe(sessionID)
-          expect(subagentSessions.has(sessionID)).toBe(true)
-          expect(syncSubagentSessions.has(sessionID)).toBe(true)
-        }),
-      })
 
       expect(subagentSessions.has(sessionID)).toBe(false)
       expect(syncSubagentSessions.has(sessionID)).toBe(false)
 
       // when
-      const result = await executeSync(args, toolContext, createContext(promptAsync) as never, deps)
+      const result = await executeSync(args, toolContext, createContext(promptAsync) as never, mockBackgroundManager)
 
       // then
       expect(result).toContain(`session_id: ${sessionID}`)
@@ -164,21 +175,18 @@ describe("executeSync session cleanup", () => {
     test("#when execution applies a fallback chain #then it clears that chain in finally", async () => {
       // given
       const sessionID = "ses-reused-fallback"
+      mockCreateOrGetSession.mockImplementation(async () => ({ sessionID, isNew: false }))
+
       const args = { ...createArgs(), session_id: sessionID }
       const toolContext = createToolContext()
       const promptAsync = mock(async () => ({ data: {} }))
-      const clearSessionFallbackChain = mock(() => {})
-      const deps = createDependencies({
-        createOrGetSession: mock(async () => ({ sessionID, isNew: false })),
-        clearSessionFallbackChain,
-      })
       const fallbackChain = [{ providers: ["openai"], model: "gpt-5.4" }]
 
       // when
-      await executeSync(args, toolContext, createContext(promptAsync) as never, deps, fallbackChain)
+      await executeSync(args, toolContext, createContext(promptAsync) as never, mockBackgroundManager, undefined, fallbackChain)
 
       // then
-      expect(clearSessionFallbackChain).toHaveBeenCalledWith(sessionID)
+      expect(mockClearFallbackChain).toHaveBeenCalledWith(sessionID)
     })
   })
 })

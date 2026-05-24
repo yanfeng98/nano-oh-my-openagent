@@ -1,16 +1,11 @@
 import type { PluginInput } from "@opencode-ai/plugin"
+import type { ToolContextWithMetadata } from "./types"
 import { log } from "../../shared"
 import { normalizeSDKResponse } from "../../shared"
 
 export async function waitForCompletion(
   sessionID: string,
-  toolContext: {
-    sessionID: string
-    messageID: string
-    agent: string
-    abort: AbortSignal
-    metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
-  },
+  toolContext: ToolContextWithMetadata,
   ctx: PluginInput
 ): Promise<void> {
   log(`[call_omo_agent] Polling for completion...`)
