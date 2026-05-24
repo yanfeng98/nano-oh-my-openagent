@@ -28,10 +28,6 @@ const REVERSE_DISPLAY_NAMES: Record<string, string> = Object.fromEntries(
   Object.entries(AGENT_DISPLAY_NAMES).map(([key, displayName]) => [displayName.toLowerCase(), key]),
 )
 
-/**
- * Resolve an agent name (display name or config key) to its lowercase config key.
- * "Atlas (Plan Executor)" → "atlas", "atlas" → "atlas", "unknown" → "unknown"
- */
 export function getAgentConfigKey(agentName: string): string {
   const lower = agentName.toLowerCase()
   const reversed = REVERSE_DISPLAY_NAMES[lower]

@@ -59,7 +59,6 @@ export interface LaunchInput {
   parentAgent?: string
   parentTools?: Record<string, boolean>
   model?: { providerID: string; modelID: string; variant?: string }
-  /** Fallback chain for runtime retry on model errors */
   fallbackChain?: FallbackEntry[]
   isUnstableAgent?: boolean
   skills?: string[]
