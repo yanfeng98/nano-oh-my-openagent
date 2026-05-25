@@ -83,10 +83,8 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
       try {
         if (imageData) {
           mimeType = inferMimeTypeFromBase64(imageData)
-          
           let finalBase64Data = extractBase64Data(imageData)
           let finalMimeType = mimeType
-          
           if (needsConversion(mimeType)) {
             log(`[look_at] Detected unsupported Base64 format: ${mimeType}, converting to JPEG...`)
             try {
@@ -100,7 +98,7 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
               return `Error: Failed to convert Base64 image format. ${conversionError}`
             }
           }
-          
+
           filePart = {
             type: "file",
             mime: finalMimeType,
@@ -109,7 +107,7 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
           }
         } else if (filePath) {
         mimeType = inferMimeTypeFromFilePath(filePath)
-        
+
         let actualFilePath = filePath
         if (needsConversion(mimeType)) {
           log(`[look_at] Detected unsupported format: ${mimeType}, converting to JPEG...`)

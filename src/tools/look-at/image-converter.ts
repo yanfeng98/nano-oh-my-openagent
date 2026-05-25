@@ -38,11 +38,11 @@ export function needsConversion(mimeType: string): boolean {
   if (SUPPORTED_FORMATS.has(mimeType)) {
     return false
   }
-  
+
   if (UNSUPPORTED_FORMATS.has(mimeType)) {
     return true
   }
-  
+
   return mimeType.startsWith("image/")
 }
 
@@ -64,7 +64,7 @@ export function convertImageToJpeg(inputPath: string, mimeType: string): string 
           encoding: "utf-8",
           timeout: CONVERSION_TIMEOUT_MS,
         })
-        
+
         if (existsSync(outputPath)) {
           log(`[image-converter] Converted using sips: ${outputPath}`)
           return outputPath
@@ -81,7 +81,7 @@ export function convertImageToJpeg(inputPath: string, mimeType: string): string 
         encoding: "utf-8",
         timeout: CONVERSION_TIMEOUT_MS,
       })
-      
+
       if (existsSync(outputPath)) {
         log(`[image-converter] Converted using ImageMagick: ${outputPath}`)
         return outputPath
@@ -107,7 +107,7 @@ export function convertImageToJpeg(inputPath: string, mimeType: string): string 
       const conversionError = error as Error & { temporaryOutputPath?: string }
       conversionError.temporaryOutputPath = outputPath
     }
-    
+
     throw error
   }
 }
@@ -143,7 +143,7 @@ export function convertBase64ImageToJpeg(
     writeFileSync(inputPath, buffer)
 
     log(`[image-converter] Converting Base64 ${mimeType} to JPEG`)
-    
+
     const outputPath = convertImageToJpeg(inputPath, mimeType)
     tempFiles.push(outputPath)
 
@@ -151,7 +151,7 @@ export function convertBase64ImageToJpeg(
     const convertedBase64 = convertedBuffer.toString("base64")
 
     log(`[image-converter] Base64 conversion successful`)
-    
+
     return { base64: convertedBase64, tempFiles }
   } catch (error) {
     tempFiles.forEach(file => {
