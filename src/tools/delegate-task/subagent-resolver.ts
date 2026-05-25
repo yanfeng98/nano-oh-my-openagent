@@ -1,7 +1,7 @@
 import type { DelegateTaskArgs } from "./types"
 import type { ExecutorContext } from "./executor-types"
 import { isPlanFamily } from "./constants"
-import { SISYPHUS_JUNIOR_AGENT } from "./sisyphus-junior-agent"
+import { SISYPHUS_JUNIOR_AGENT } from "./constants"
 import { normalizeModelFormat } from "../../shared/model-format-normalizer"
 import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
 import { normalizeFallbackModels } from "../../shared/model-resolver"
@@ -9,9 +9,8 @@ import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-m
 import { getAgentDisplayName, getAgentConfigKey } from "../../shared/agent-display-names"
 import { normalizeSDKResponse } from "../../shared"
 import { log } from "../../shared/logger"
-import { getAvailableModelsForDelegateTask } from "./available-models"
 import type { FallbackEntry } from "../../shared/model-requirements"
-import { resolveModelForDelegateTask } from "./model-selection"
+import { getAvailableModelsForDelegateTask, resolveModelForDelegateTask } from "./model-resolution"
 
 export async function resolveSubagentExecution(
   args: DelegateTaskArgs,

@@ -31,7 +31,7 @@ describe("pollSyncSession", () => {
     test("detects completion when assistant message has terminal finish reason", async () => {
       //#given - session messages with a terminal assistant finish ("end_turn")
       //         and the assistant id > user id (native opencode condition)
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
 
       let pollCount = 0
       const mockClient = {
@@ -63,7 +63,7 @@ describe("pollSyncSession", () => {
 
     test("keeps polling when assistant finish is tool-calls (non-terminal)", async () => {
       //#given - first poll returns tool-calls finish, second returns end_turn
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
 
       let callCount = 0
       const mockClient = {
@@ -115,7 +115,7 @@ describe("pollSyncSession", () => {
 
     test("keeps polling when finish is 'unknown' (non-terminal)", async () => {
       //#given
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
 
       let callCount = 0
       const mockClient = {
@@ -167,7 +167,7 @@ describe("pollSyncSession", () => {
 
     test("does not complete when assistant id < user id (user sent after assistant)", async () => {
       //#given - assistant finished but user message came after it (agent still processing)
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
 
       let callCount = 0
       const mockClient = {
@@ -222,7 +222,7 @@ describe("pollSyncSession", () => {
   describe("abort handling", () => {
     test("returns abort message when signal is aborted", async () => {
       //#given
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
       let abortCount = 0
       const mockClient = {
         session: {
@@ -252,7 +252,7 @@ describe("pollSyncSession", () => {
   describe("timeout handling", () => {
     test("returns error string on timeout", async () => {
       //#given - never returns a terminal finish, but timeout is very short
-      const { pollSyncSession } = require("./sync-session-poller")
+      const { pollSyncSession } = require("./sync-pipeline")
 
       __setTimingConfig({
         POLL_INTERVAL_MS: 10,
@@ -293,7 +293,7 @@ describe("pollSyncSession", () => {
    describe("non-idle session status", () => {
      test("skips message check when session is not idle", async () => {
        //#given
-       const { pollSyncSession } = require("./sync-session-poller")
+       const { pollSyncSession } = require("./sync-pipeline")
 
        let statusCallCount = 0
        let messageCallCount = 0
@@ -337,7 +337,7 @@ describe("pollSyncSession", () => {
 
   describe("isSessionComplete edge cases", () => {
     test("returns false when messages array is empty", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - empty messages array
       const messages: any[] = []
@@ -350,7 +350,7 @@ describe("pollSyncSession", () => {
     })
 
     test("returns false when no assistant message exists", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - only user messages, no assistant
       const messages = [
@@ -366,7 +366,7 @@ describe("pollSyncSession", () => {
     })
 
     test("returns false when only assistant message exists (no user)", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - only assistant message, no user message
       const messages = [
@@ -384,7 +384,7 @@ describe("pollSyncSession", () => {
     })
 
     test("returns false when assistant message has missing finish field", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - assistant message without finish field
       const messages = [
@@ -403,7 +403,7 @@ describe("pollSyncSession", () => {
     })
 
     test("returns false when assistant message has missing info.id field", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - assistant message without id in info
       const messages = [
@@ -422,7 +422,7 @@ describe("pollSyncSession", () => {
     })
 
     test("returns false when user message has missing info.id field", () => {
-      const { isSessionComplete } = require("./sync-session-poller")
+      const { isSessionComplete } = require("./sync-pipeline")
 
       //#given - user message without id in info
       const messages = [

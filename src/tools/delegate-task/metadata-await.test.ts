@@ -1,6 +1,6 @@
 const { describe, test, expect } = require("bun:test")
 
-import { executeBackgroundTask } from "./executor"
+import { executeBackgroundTask } from "./background-task"
 import type { DelegateTaskArgs, ToolContextWithMetadata } from "./types"
 
 describe("task tool metadata awaiting", () => {

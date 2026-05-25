@@ -2,13 +2,11 @@ import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import type { DelegateTaskArgs, ToolContextWithMetadata } from "./types"
 import type { ExecutorContext, ParentContext } from "./executor-types"
 import { getTaskToastManager } from "../../features/task-toast-manager"
-import { storeToolCallMetadata } from "./tool-metadata"
+import { storeToolCallMetadata, formatDuration, formatDetailedError } from "./formatting"
 import { subagentSessions, syncSubagentSessions, setSessionAgent } from "../../features/claude-code-session-state"
 import { log } from "../../shared/logger"
 import { SessionCategoryRegistry } from "../../shared/session-category-registry"
-import { formatDuration } from "./time-formatter"
-import { formatDetailedError } from "./error-formatting"
-import { syncTaskDeps, type SyncTaskDeps } from "./sync-task-deps"
+import { createSyncSession, sendSyncPrompt, pollSyncSession, fetchSyncResult } from "./sync-pipeline"
 import { setSessionFallbackChain, clearSessionFallbackChain } from "../../hooks/model-fallback/hook"
 
 export async function executeSyncTask(
@@ -21,7 +19,6 @@ export async function executeSyncTask(
   systemContent: string | undefined,
   modelInfo?: ModelFallbackInfo,
   fallbackChain?: import("../../shared/model-requirements").FallbackEntry[],
-  deps: SyncTaskDeps = syncTaskDeps
 ): Promise<string> {
   const { manager, client, directory, onSyncSessionCreated, syncPollTimeoutMs } = executorCtx
   const toastManager = getTaskToastManager()
@@ -45,7 +42,7 @@ export async function executeSyncTask(
             childDepth: 1,
           })
 
-    const createSessionResult = await deps.createSyncSession(client, {
+    const createSessionResult = await createSyncSession(client, {
       parentSessionID: parentContext.sessionID,
       agentToUse,
       description: args.description,
@@ -115,7 +112,7 @@ export async function executeSyncTask(
     }
     await storeToolCallMetadata(ctx, syncTaskMeta)
 
-    const promptError = await deps.sendSyncPrompt(client, {
+    const promptError = await sendSyncPrompt(client, {
       sessionID,
       agentToUse,
       args,
@@ -129,7 +126,7 @@ export async function executeSyncTask(
     }
 
     try {
-      const pollError = await deps.pollSyncSession(ctx, client, {
+      const pollError = await pollSyncSession(ctx, client, {
         sessionID,
         agentToUse,
         toastManager,
@@ -139,7 +136,7 @@ export async function executeSyncTask(
         return pollError
       }
 
-      const result = await deps.fetchSyncResult(client, sessionID)
+      const result = await fetchSyncResult(client, sessionID)
       if (!result.ok) {
         return result.error
       }

@@ -47,7 +47,7 @@ describe("executeUnstableAgentTask - interrupt detection", () => {
       },
     }
 
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
 
     const args = {
       prompt: "test prompt",
@@ -114,7 +114,7 @@ describe("executeUnstableAgentTask - interrupt detection", () => {
       },
     }
 
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
 
     const args = {
       prompt: "test prompt",
@@ -181,7 +181,7 @@ describe("executeUnstableAgentTask - interrupt detection", () => {
       },
     }
 
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
 
     const args = {
       prompt: "test prompt",

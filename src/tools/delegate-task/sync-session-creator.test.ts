@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { createSyncSession } from "./sync-session-creator"
+import { createSyncSession } from "./sync-pipeline"
 
 describe("createSyncSession", () => {
   test("creates child session with question permission denied", async () => {

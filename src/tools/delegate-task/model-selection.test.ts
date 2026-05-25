@@ -1,6 +1,6 @@
 declare const require: (name: string) => any
 const { describe, test, expect, beforeEach, afterEach, spyOn, mock } = require("bun:test")
-import { resolveModelForDelegateTask } from "./model-selection"
+import { resolveModelForDelegateTask } from "./model-resolution"
 import * as connectedProvidersCache from "../../shared/connected-providers-cache"
 
 describe("resolveModelForDelegateTask", () => {

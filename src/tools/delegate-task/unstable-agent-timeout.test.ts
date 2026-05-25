@@ -19,7 +19,7 @@ describe("executeUnstableAgentTask timeout handling", () => {
 
   test("returns timeout status instead of success when monitored poll budget is exhausted", async () => {
     // #given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
 
     const mockManager = {
       launch: async () => ({ id: "task_001", sessionID: "ses_timeout", status: "running" }),

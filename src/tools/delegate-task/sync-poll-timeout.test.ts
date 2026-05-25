@@ -140,7 +140,7 @@ describe("syncPollTimeoutMs threading", () => {
   describe("#given unstable-agent-task path", () => {
     describe("#when syncPollTimeoutMs is set in executor context", () => {
       test("#then unstable path uses configured timeout budget", async () => {
-        const { executeUnstableAgentTask } = require("./unstable-agent-task")
+        const { executeUnstableAgentTask } = require("./background-task")
 
         let statusCallCount = 0
         const mockClient = {

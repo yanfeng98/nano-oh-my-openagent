@@ -38,7 +38,7 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
     }
 
     //#when - executeBackgroundContinuation completes
-    const { executeBackgroundContinuation } = require("./background-continuation")
+    const { executeBackgroundContinuation } = require("./continuation")
     const result = await executeBackgroundContinuation(args, mockCtx, mockExecutorCtx, parentContext)
 
     //#then - task_metadata should contain subagent field
@@ -84,7 +84,7 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
     }
 
     //#when - executeBackgroundContinuation completes without agent
-    const { executeBackgroundContinuation } = require("./background-continuation")
+    const { executeBackgroundContinuation } = require("./continuation")
     const result = await executeBackgroundContinuation(args, mockCtx, mockExecutorCtx, parentContext)
 
     //#then - task_metadata should NOT contain subagent field

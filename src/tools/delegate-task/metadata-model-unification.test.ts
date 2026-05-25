@@ -78,7 +78,7 @@ describe("metadata model unification", () => {
       })
 
       test("#then unstable-agent-task metadata includes model", async () => {
-        const { executeUnstableAgentTask } = require("./unstable-agent-task")
+        const { executeUnstableAgentTask } = require("./background-task")
         const ctx = makeMockCtx()
         const args: DelegateTaskArgs = {
           description: "test", prompt: "do it",
@@ -118,7 +118,7 @@ describe("metadata model unification", () => {
       })
 
       test("#then background-continuation metadata includes model from task", async () => {
-        const { executeBackgroundContinuation } = require("./background-continuation")
+        const { executeBackgroundContinuation } = require("./continuation")
         const ctx = makeMockCtx()
         const args: DelegateTaskArgs = {
           description: "continue", prompt: "keep going",
@@ -140,7 +140,7 @@ describe("metadata model unification", () => {
       })
 
       test("#then sync-continuation metadata includes model from resumed session", async () => {
-        const { executeSyncContinuation } = require("./sync-continuation")
+        const { executeSyncContinuation } = require("./continuation")
         const ctx = makeMockCtx()
         const args: DelegateTaskArgs = {
           description: "continue", prompt: "keep going",

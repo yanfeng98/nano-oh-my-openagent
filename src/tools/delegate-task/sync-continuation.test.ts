@@ -66,7 +66,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => null,
@@ -128,7 +128,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => {
@@ -196,7 +196,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => null,
@@ -254,7 +254,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async (_ctx: any, _client: any, input: any) => {
@@ -317,7 +317,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => null,
@@ -377,7 +377,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => null,
@@ -431,7 +431,7 @@ describe("executeSyncContinuation - toast cleanup error paths", () => {
       },
     }
 
-    const { executeSyncContinuation } = require("./sync-continuation")
+    const { executeSyncContinuation } = require("./continuation")
 
     const deps = {
       pollSyncSession: async () => null,

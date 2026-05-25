@@ -1,23 +1,82 @@
 import type { DelegateTaskArgs, ToolContextWithMetadata } from "./types"
-import type { ExecutorContext, SessionMessage } from "./executor-types"
+import type { ExecutorContext, ParentContext, SessionMessage } from "./executor-types"
 import { isPlanFamily } from "./constants"
-import { storeToolCallMetadata } from "./tool-metadata"
+import { storeToolCallMetadata, formatDuration, formatDetailedError } from "./formatting"
 import { getTaskToastManager } from "../../features/task-toast-manager"
 import { getAgentToolRestrictions } from "../../shared/agent-tool-restrictions"
 import { getMessageDir } from "../../shared"
 import { promptWithModelSuggestionRetry } from "../../shared/model-suggestion-retry"
 import { findNearestMessageWithFields } from "../../features/hook-message-injector"
-import { formatDuration } from "./time-formatter"
-import { syncContinuationDeps, type SyncContinuationDeps } from "./sync-continuation-deps"
 import { setSessionTools } from "../../shared/session-tools-store"
 import { normalizeSDKResponse } from "../../shared"
 import { buildTaskPrompt } from "./prompt-builder"
+import { getSessionTools } from "../../shared/session-tools-store"
+import { pollSyncSession, fetchSyncResult } from "./sync-pipeline"
+
+// ── background continuation ─────────────────────────────────────
+
+export async function executeBackgroundContinuation(
+  args: DelegateTaskArgs,
+  ctx: ToolContextWithMetadata,
+  executorCtx: ExecutorContext,
+  parentContext: ParentContext
+): Promise<string> {
+  const { manager } = executorCtx
+
+  try {
+    const task = await manager.resume({
+      sessionId: args.session_id!,
+      prompt: args.prompt,
+      parentSessionID: parentContext.sessionID,
+      parentMessageID: parentContext.messageID,
+      parentModel: parentContext.model,
+      parentAgent: parentContext.agent,
+      parentTools: getSessionTools(parentContext.sessionID),
+    })
+
+    const bgContMeta = {
+      title: `Continue: ${task.description}`,
+      metadata: {
+        prompt: args.prompt,
+        agent: task.agent,
+        load_skills: args.load_skills,
+        description: args.description,
+        run_in_background: args.run_in_background,
+        sessionId: task.sessionID,
+        command: args.command,
+        model: task.model ? { providerID: task.model.providerID, modelID: task.model.modelID } : undefined,
+      },
+    }
+    await storeToolCallMetadata(ctx, bgContMeta)
+
+    return `Background task continued.
+
+Task ID: ${task.id}
+Description: ${task.description}
+Agent: ${task.agent}
+Status: ${task.status}
+
+Agent continues with full previous context preserved.
+Use \`background_output\` with task_id="${task.id}" to check progress.
+
+<task_metadata>
+session_id: ${task.sessionID}
+${task.agent ? `subagent: ${task.agent}\n` : ""}</task_metadata>`
+  } catch (error) {
+    return formatDetailedError(error, {
+      operation: "Continue background task",
+      args,
+      sessionID: args.session_id,
+    })
+  }
+}
+
+// ── sync continuation ───────────────────────────────────────────
 
 export async function executeSyncContinuation(
   args: DelegateTaskArgs,
   ctx: ToolContextWithMetadata,
   executorCtx: ExecutorContext,
-  deps: SyncContinuationDeps = syncContinuationDeps
 ): Promise<string> {
   const { client, syncPollTimeoutMs } = executorCtx
   const toastManager = getTaskToastManager()
@@ -108,7 +167,7 @@ export async function executeSyncContinuation(
    }
 
     try {
-      const pollError = await deps.pollSyncSession(ctx, client, {
+      const pollError = await pollSyncSession(ctx, client, {
         sessionID: args.session_id!,
         agentToUse: resumeAgent ?? "continue",
         toastManager,
@@ -119,7 +178,7 @@ export async function executeSyncContinuation(
         return pollError
       }
 
-      const result = await deps.fetchSyncResult(client, args.session_id!, anchorMessageCount)
+      const result = await fetchSyncResult(client, args.session_id!, anchorMessageCount)
       if (!result.ok) {
         return result.error
       }

@@ -4,6 +4,9 @@ import type {
    AvailableSkill,
  } from "../../agents/dynamic-agent-prompt-builder"
 import { truncateDescription } from "../../shared/truncate-description"
+import { getAgentDisplayName } from "../../shared/agent-display-names"
+
+export const SISYPHUS_JUNIOR_AGENT = getAgentDisplayName("sisyphus-junior")
 
 export const VISUAL_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on VISUAL/UI tasks.

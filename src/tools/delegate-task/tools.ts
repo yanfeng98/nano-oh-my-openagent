@@ -1,7 +1,6 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { DelegateTaskArgs, ToolContextWithMetadata, DelegateTaskToolOptions } from "./types"
-import { CATEGORY_DESCRIPTIONS } from "./constants"
-import { SISYPHUS_JUNIOR_AGENT } from "./sisyphus-junior-agent"
+import { CATEGORY_DESCRIPTIONS, SISYPHUS_JUNIOR_AGENT } from "./constants"
 import { mergeCategories } from "../../shared/merge-categories"
 import { log } from "../../shared/logger"
 import { buildSystemContent } from "./prompt-builder"
@@ -9,17 +8,12 @@ import type {
   AvailableCategory,
   AvailableSkill,
 } from "../../agents/dynamic-agent-prompt-builder"
-import {
-  resolveSkillContent,
-  resolveParentContext,
-  executeBackgroundContinuation,
-  executeSyncContinuation,
-  resolveCategoryExecution,
-  resolveSubagentExecution,
-  executeUnstableAgentTask,
-  executeBackgroundTask,
-  executeSyncTask,
-} from "./executor"
+import { resolveSkillContent, resolveParentContext } from "./context-resolver"
+import { executeBackgroundContinuation, executeSyncContinuation } from "./continuation"
+import { resolveCategoryExecution } from "./category-resolver"
+import { resolveSubagentExecution } from "./subagent-resolver"
+import { executeBackgroundTask, executeUnstableAgentTask } from "./background-task"
+import { executeSyncTask } from "./sync-task"
 
 export { resolveCategoryConfig } from "./categories"
 export type { SyncSessionCreatedEvent, DelegateTaskToolOptions, BuildSystemContentInput } from "./types"

@@ -3,14 +3,12 @@ import type { DelegateTaskArgs } from "./types"
 import type { ExecutorContext } from "./executor-types"
 import type { FallbackEntry } from "../../shared/model-requirements"
 import { mergeCategories } from "../../shared/merge-categories"
-import { SISYPHUS_JUNIOR_AGENT } from "./sisyphus-junior-agent"
+import { SISYPHUS_JUNIOR_AGENT } from "./constants"
 import { resolveCategoryConfig } from "./categories"
-import { parseModelString } from "./model-string-parser"
 import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
 import { normalizeFallbackModels } from "../../shared/model-resolver"
 import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models"
-import { getAvailableModelsForDelegateTask } from "./available-models"
-import { resolveModelForDelegateTask } from "./model-selection"
+import { parseModelString, getAvailableModelsForDelegateTask, resolveModelForDelegateTask } from "./model-resolution"
 
 export interface CategoryResolutionResult {
   agentToUse: string

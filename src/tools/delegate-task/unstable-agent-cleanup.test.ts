@@ -55,7 +55,7 @@ describe("executeUnstableAgentTask cleanup", () => {
 
   test("cancels launched task when parent aborts during monitoring", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
     const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
@@ -95,7 +95,7 @@ describe("executeUnstableAgentTask cleanup", () => {
 
   test("cancels launched task when monitored timeout budget is exhausted", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
     const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
@@ -136,7 +136,7 @@ describe("executeUnstableAgentTask cleanup", () => {
 
   test("cancels launched task when parent aborts while waiting for session start", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./background-task")
     const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
