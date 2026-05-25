@@ -1,11 +1,15 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 import { MULTIMODAL_LOOKER_AGENT } from "./constants"
 import { fetchAvailableModels } from "../../shared/model-availability"
-import { log } from "../../shared/logger"
+import { log } from "../../shared"
 import { readConnectedProvidersCache } from "../../shared/connected-providers-cache"
 import { resolveModelPipeline } from "../../shared/model-resolution-pipeline"
 import { readVisionCapableModelsCache } from "../../shared/vision-capable-models-cache"
-import { buildMultimodalLookerFallbackChain } from "./multimodal-fallback-chain"
+import type { FallbackEntry } from "../../shared/model-requirements"
+import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
+import type { VisionCapableModel } from "../../plugin-state"
+
+const MULTIMODAL_LOOKER_REQUIREMENT = AGENT_MODEL_REQUIREMENTS["multimodal-looker"]
 
 type AgentModel = { providerID: string; modelID: string }
 
@@ -28,7 +32,7 @@ function getFullModelKey(model: AgentModel): string {
   return `${model.providerID}/${model.modelID}`
 }
 
-function isVisionCapableAgentModel(
+export function isVisionCapableAgentModel(
   agentModel: AgentModel | undefined,
   visionCapableModels: Array<AgentModel>,
 ): agentModel is AgentModel {
@@ -80,6 +84,55 @@ async function resolveRegisteredAgentMetadata(
     agentModel: matched?.model,
     agentVariant: matched?.variant,
   }
+}
+
+function findHardcodedFallbackEntry(
+  providerID: string,
+  modelID: string,
+): FallbackEntry | undefined {
+  return MULTIMODAL_LOOKER_REQUIREMENT.fallbackChain.find((entry) =>
+    entry.model === modelID && entry.providers.includes(providerID),
+  )
+}
+
+function buildMultimodalLookerFallbackChain(
+  visionCapableModels: VisionCapableModel[],
+): FallbackEntry[] {
+  const seen = new Set<string>()
+  const fallbackChain: FallbackEntry[] = []
+
+  for (const visionCapableModel of visionCapableModels) {
+    const key = getFullModelKey(visionCapableModel)
+    if (seen.has(key)) continue
+
+    const hardcodedEntry = findHardcodedFallbackEntry(
+      visionCapableModel.providerID,
+      visionCapableModel.modelID,
+    )
+
+    seen.add(key)
+    fallbackChain.push({
+      providers: [visionCapableModel.providerID],
+      model: visionCapableModel.modelID,
+      ...(hardcodedEntry?.variant ? { variant: hardcodedEntry.variant } : {}),
+    })
+  }
+
+  for (const entry of MULTIMODAL_LOOKER_REQUIREMENT.fallbackChain) {
+    const providerModelKeys = entry.providers.map((providerID) =>
+      getFullModelKey({ providerID, modelID: entry.model }),
+    )
+    if (providerModelKeys.every((key) => seen.has(key))) {
+      continue
+    }
+
+    providerModelKeys.forEach((key) => {
+      seen.add(key)
+    })
+    fallbackChain.push(entry)
+  }
+
+  return fallbackChain
 }
 
 async function resolveDynamicAgentMetadata(

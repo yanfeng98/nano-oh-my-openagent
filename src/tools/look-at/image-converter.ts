@@ -112,6 +112,24 @@ export function convertImageToJpeg(inputPath: string, mimeType: string): string 
   }
 }
 
+export function getTemporaryConversionPath(error: unknown): string | null {
+  if (!(error instanceof Error)) {
+    return null
+  }
+
+  const temporaryOutputPath = Reflect.get(error, "temporaryOutputPath")
+  if (typeof temporaryOutputPath === "string" && temporaryOutputPath.length > 0) {
+    return temporaryOutputPath
+  }
+
+  const temporaryDirectory = Reflect.get(error, "temporaryDirectory")
+  if (typeof temporaryDirectory === "string" && temporaryDirectory.length > 0) {
+    return temporaryDirectory
+  }
+
+  return null
+}
+
 export function cleanupConvertedImage(filePath: string): void {
   try {
     const tempDirectory = dirname(filePath)

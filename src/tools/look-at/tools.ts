@@ -13,41 +13,14 @@ import {
   inferMimeTypeFromBase64,
   inferMimeTypeFromFilePath,
 } from "./mime-type-inference"
-import { resolveMultimodalLookerAgentMetadata } from "./multimodal-agent-metadata"
+import { resolveMultimodalLookerAgentMetadata, isVisionCapableAgentModel } from "./multimodal-agent-metadata"
 import {
   needsConversion,
   convertImageToJpeg,
   convertBase64ImageToJpeg,
   cleanupConvertedImage,
+  getTemporaryConversionPath,
 } from "./image-converter"
-
-function getTemporaryConversionPath(error: unknown): string | null {
-  if (!(error instanceof Error)) {
-    return null
-  }
-
-  const temporaryOutputPath = Reflect.get(error, "temporaryOutputPath")
-  if (typeof temporaryOutputPath === "string" && temporaryOutputPath.length > 0) {
-    return temporaryOutputPath
-  }
-
-  const temporaryDirectory = Reflect.get(error, "temporaryDirectory")
-  if (typeof temporaryDirectory === "string" && temporaryDirectory.length > 0) {
-    return temporaryDirectory
-  }
-
-  return null
-}
-
-function isVisionCapableResolvedModel(model: {
-  providerID: string
-  modelID: string
-}): boolean {
-  return readVisionCapableModelsCache().some((visionCapableModel) =>
-    visionCapableModel.providerID === model.providerID &&
-    visionCapableModel.modelID === model.modelID,
-  )
-}
 
 export { normalizeArgs, validateArgs } from "./look-at-arguments"
 
@@ -76,9 +49,7 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
 
       let mimeType: string
       let filePart: { type: "file"; mime: string; url: string; filename: string }
-      let tempFilePath: string | null = null
-      let tempConversionPath: string | null = null
-      let tempFilesToCleanup: string[] = []
+      const tempPaths = new Set<string>()
 
       try {
         if (imageData) {
@@ -91,7 +62,7 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
               const { base64, tempFiles } = convertBase64ImageToJpeg(finalBase64Data, mimeType)
               finalBase64Data = base64
               finalMimeType = "image/jpeg"
-              tempFilesToCleanup = tempFiles
+              for (const f of tempFiles) tempPaths.add(f)
               log(`[look_at] Base64 conversion successful`)
             } catch (conversionError) {
               log(`[look_at] Base64 conversion failed: ${conversionError}`)
@@ -112,15 +83,15 @@ export function createLookAt(ctx: PluginInput): ToolDefinition {
         if (needsConversion(mimeType)) {
           log(`[look_at] Detected unsupported format: ${mimeType}, converting to JPEG...`)
           try {
-            tempFilePath = convertImageToJpeg(filePath, mimeType)
-            tempConversionPath = tempFilePath
-            actualFilePath = tempFilePath
+            const convertedPath = convertImageToJpeg(filePath, mimeType)
+            tempPaths.add(convertedPath)
+            actualFilePath = convertedPath
             mimeType = "image/jpeg"
-            log(`[look_at] Conversion successful: ${tempFilePath}`)
+            log(`[look_at] Conversion successful: ${convertedPath}`)
           } catch (conversionError) {
             const failedConversionPath = getTemporaryConversionPath(conversionError)
             if (failedConversionPath) {
-              tempConversionPath = failedConversionPath
+              tempPaths.add(failedConversionPath)
             }
             log(`[look_at] Conversion failed: ${conversionError}`)
             return `Error: Failed to convert image format. ${conversionError}`
@@ -146,7 +117,7 @@ Be thorough on what was requested, concise on everything else.
 If the requested information is not found, clearly state what is missing.`
 
       const { agentModel, agentVariant } = await resolveMultimodalLookerAgentMetadata(ctx)
-      if (agentModel && !isVisionCapableResolvedModel(agentModel)) {
+      if (agentModel && !isVisionCapableAgentModel(agentModel, readVisionCapableModelsCache())) {
         log("[look_at] Resolved model is not vision-capable, blocking", {
           resolvedModel: agentModel,
         })
@@ -237,14 +208,9 @@ Original error: ${createResult.error}`
         log(`[look_at] Unexpected error analyzing ${sourceDescription}:`, error)
         return `Error: Failed to analyze ${sourceDescription}: ${errorMessage}`
       } finally {
-        if (tempConversionPath) {
-          cleanupConvertedImage(tempConversionPath)
-        } else if (tempFilePath) {
-          cleanupConvertedImage(tempFilePath)
+        for (const path of tempPaths) {
+          cleanupConvertedImage(path)
         }
-        tempFilesToCleanup.forEach(file => {
-          cleanupConvertedImage(file)
-        })
       }
     },
   })
