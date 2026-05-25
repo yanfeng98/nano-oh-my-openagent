@@ -143,6 +143,9 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
       if (args.load_skills === null) {
         throw new Error(`Invalid arguments: load_skills=null is not allowed. Pass [] if no skills needed.`)
       }
+      if (typeof args.run_in_background === "string") {
+        args.run_in_background = args.run_in_background === "true"
+      }
 
       const runInBackground = args.run_in_background === true
 
@@ -185,8 +188,6 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
       let categoryModel: { providerID: string; modelID: string; variant?: string } | undefined
       let categoryPromptAppend: string | undefined
       let modelInfo: import("../../features/task-toast-manager/types").ModelFallbackInfo | undefined
-      let actualModel: string | undefined
-      let isUnstableAgent = false
       let fallbackChain: import("../../shared/model-requirements").FallbackEntry[] | undefined
       let maxPromptTokens: number | undefined
 
@@ -199,12 +200,12 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         categoryModel = resolution.categoryModel
         categoryPromptAppend = resolution.categoryPromptAppend
         modelInfo = resolution.modelInfo
-        actualModel = resolution.actualModel
-        isUnstableAgent = resolution.isUnstableAgent
         fallbackChain = resolution.fallbackChain
         maxPromptTokens = resolution.maxPromptTokens
 
-        const isRunInBackgroundExplicitlyFalse = args.run_in_background === false || args.run_in_background === "false" as unknown as boolean
+        const actualModel = resolution.actualModel
+        const isUnstableAgent = resolution.isUnstableAgent
+        const isRunInBackgroundExplicitlyFalse = args.run_in_background === false
 
         log("[task] unstable agent detection", {
           category: args.category,

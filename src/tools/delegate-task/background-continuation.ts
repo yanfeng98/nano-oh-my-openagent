@@ -1,6 +1,6 @@
 import type { DelegateTaskArgs, ToolContextWithMetadata } from "./types"
 import type { ExecutorContext, ParentContext } from "./executor-types"
-import { storeToolMetadata } from "../../features/tool-metadata-store"
+import { storeToolCallMetadata } from "./tool-metadata"
 import { formatDetailedError } from "./error-formatting"
 import { getSessionTools } from "../../shared/session-tools-store"
 
@@ -36,10 +36,7 @@ export async function executeBackgroundContinuation(
         model: task.model ? { providerID: task.model.providerID, modelID: task.model.modelID } : undefined,
       },
     }
-    await ctx.metadata?.(bgContMeta)
-    if (ctx.callID) {
-      storeToolMetadata(ctx.sessionID, ctx.callID, bgContMeta)
-    }
+    await storeToolCallMetadata(ctx, bgContMeta)
 
     return `Background task continued.
 

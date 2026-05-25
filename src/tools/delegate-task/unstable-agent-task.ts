@@ -3,7 +3,7 @@ import type { ExecutorContext, ParentContext, SessionMessage } from "./executor-
 import { DEFAULT_SYNC_POLL_TIMEOUT_MS, getTimingConfig } from "./timing"
 import { buildTaskPrompt } from "./prompt-builder"
 import { cancelUnstableAgentTask } from "./cancel-unstable-agent-task"
-import { storeToolMetadata } from "../../features/tool-metadata-store"
+import { storeToolCallMetadata } from "./tool-metadata"
 import { formatDuration } from "./time-formatter"
 import { formatDetailedError } from "./error-formatting"
 import { getSessionTools } from "../../shared/session-tools-store"
@@ -79,10 +79,7 @@ export async function executeUnstableAgentTask(
         model: categoryModel ? { providerID: categoryModel.providerID, modelID: categoryModel.modelID } : undefined,
       },
     }
-    await ctx.metadata?.(bgTaskMeta)
-    if (ctx.callID) {
-      storeToolMetadata(ctx.sessionID, ctx.callID, bgTaskMeta)
-    }
+    await storeToolCallMetadata(ctx, bgTaskMeta)
 
     const startTime = new Date()
     const timingCfg = getTimingConfig()

@@ -7,10 +7,7 @@ import { normalizeSDKResponse } from "../../shared"
 const NON_TERMINAL_FINISH_REASONS = new Set(["tool-calls", "unknown"])
 
 function wait(milliseconds: number): Promise<void> {
-  const sharedBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT)
-  const typedArray = new Int32Array(sharedBuffer)
-  const result = Atomics.waitAsync(typedArray, 0, 0, milliseconds)
-  return result.async ? result.value.then(() => undefined) : Promise.resolve()
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 function abortSyncSession(client: OpencodeClient, sessionID: string, reason: string): void {

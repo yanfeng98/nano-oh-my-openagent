@@ -10,16 +10,6 @@ import { getAgentToolRestrictions } from "../../shared/agent-tool-restrictions"
 import { setSessionTools } from "../../shared/session-tools-store"
 import { createInternalAgentTextPart } from "../../shared/internal-initiator-marker"
 
-type SendSyncPromptDeps = {
-  promptWithModelSuggestionRetry: typeof promptWithModelSuggestionRetry
-  promptSyncWithModelSuggestionRetry: typeof promptSyncWithModelSuggestionRetry
-}
-
-const sendSyncPromptDeps: SendSyncPromptDeps = {
-  promptWithModelSuggestionRetry,
-  promptSyncWithModelSuggestionRetry,
-}
-
 function isOracleAgent(agentToUse: string): boolean {
   return agentToUse.toLowerCase() === "oracle"
 }
@@ -41,7 +31,6 @@ export async function sendSyncPrompt(
     toastManager: { removeTask: (id: string) => void } | null | undefined
     taskId: string | undefined
   },
-  deps: SendSyncPromptDeps = sendSyncPromptDeps
 ): Promise<string | null> {
   const allowTask = isPlanFamily(input.agentToUse)
   const effectivePrompt = buildTaskPrompt(input.args.prompt, input.agentToUse)
@@ -68,11 +57,11 @@ export async function sendSyncPrompt(
   }
 
   try {
-    await deps.promptWithModelSuggestionRetry(client, promptArgs)
+    await promptWithModelSuggestionRetry(client, promptArgs)
   } catch (promptError) {
     if (isOracleAgent(input.agentToUse) && isUnexpectedEofError(promptError)) {
       try {
-        await deps.promptSyncWithModelSuggestionRetry(client, promptArgs)
+        await promptSyncWithModelSuggestionRetry(client, promptArgs)
         return null
       } catch (oracleRetryError) {
         promptError = oracleRetryError

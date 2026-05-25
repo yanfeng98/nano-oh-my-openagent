@@ -2,7 +2,7 @@ import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import type { DelegateTaskArgs, ToolContextWithMetadata } from "./types"
 import type { ExecutorContext, ParentContext } from "./executor-types"
 import { getTaskToastManager } from "../../features/task-toast-manager"
-import { storeToolMetadata } from "../../features/tool-metadata-store"
+import { storeToolCallMetadata } from "./tool-metadata"
 import { subagentSessions, syncSubagentSessions, setSessionAgent } from "../../features/claude-code-session-state"
 import { log } from "../../shared/logger"
 import { SessionCategoryRegistry } from "../../shared/session-category-registry"
@@ -113,10 +113,7 @@ export async function executeSyncTask(
         model: categoryModel ? { providerID: categoryModel.providerID, modelID: categoryModel.modelID } : undefined,
       },
     }
-    await ctx.metadata?.(syncTaskMeta)
-    if (ctx.callID) {
-      storeToolMetadata(ctx.sessionID, ctx.callID, syncTaskMeta)
-    }
+    await storeToolCallMetadata(ctx, syncTaskMeta)
 
     const promptError = await deps.sendSyncPrompt(client, {
       sessionID,
