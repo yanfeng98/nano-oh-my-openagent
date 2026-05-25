@@ -1,6 +1,6 @@
 # oh-my-opencode — O P E N C O D E Plugin
 
-**Generated:** 2026-03-06 | **Commit:** 7fe44024 | **Branch:** dev
+**Generated:** 2026-05-25 | **Commit:** 0eac736d4 | **Branch:** 260315-v3.11.2
 
 ## OVERVIEW
 
@@ -23,7 +23,7 @@ oh-my-opencode/
 │   ├── mcp/                  # 3 built-in remote MCPs (websearch, context7, grep_app)
 │   ├── plugin/               # 8 OpenCode hook handlers + 46 hook composition
 │   └── plugin-handlers/      # 6-phase config loading pipeline
-├── packages/                 # Monorepo: cli-runner, 12 platform binaries
+├── packages/                 # Monorepo: cli-runner, 11 platform binaries
 └── local-ignore/             # Dev-only test fixtures
 ```
 
@@ -108,18 +108,40 @@ Fields: agents (14 overridable, 21 fields each), categories (8 built-in + custom
 
 ## ANTI-PATTERNS
 
+### Hard Blocks (NEVER violate)
+
 - Never use `as any`, `@ts-ignore`, `@ts-expect-error`
 - Never suppress lint/type errors
 - Never add emojis to code/comments unless user explicitly asks
 - Never commit unless explicitly requested
-- Never run `bun publish` directly — use GitHub Actions
+- Never run `bun publish` directly — use GitHub Actions (or `script/publish.ts` with env vars)
 - Never modify `package.json` version locally
-- Test: given/when/then — never use Arrange-Act-Assert comments
-- Comments: avoid AI-generated comment patterns (enforced by comment-checker hook)
 - Never create catch-all files (`utils.ts`, `helpers.ts`, `service.ts`)
 - Empty catch blocks `catch(e) {}` — always handle errors
-- Never use em dashes (—), en dashes (–), or AI filler phrases in generated content
 - index.ts is entry point ONLY — never dump business logic there
+- `background_cancel(all=true)` — Never. Always cancel individually by taskId.
+
+### Bugfix Rules
+
+- Fix minimally. NEVER refactor while fixing.
+- Never delete failing tests to "pass"
+- Never shotgun debug (random changes hoping something works)
+- Never leave code in broken state after failures
+- After 3 consecutive failures: STOP, REVERT, DOCUMENT, consult Oracle, ASK USER
+
+### Evidence Rules
+
+- NO EVIDENCE = NOT COMPLETE: diagnostics clean, build exit 0, tests pass, delegation verified
+- Never deliver final answer before collecting Oracle/Librarian results
+- Never claim "it works" without running and showing output
+
+### Style & Content
+
+- Test: given/when/then — never use Arrange-Act-Assert comments
+- Comments: avoid AI-generated comment patterns (enforced by comment-checker hook)
+- Never use em dashes (—), en dashes (–), or AI filler phrases in generated content
+- Never speculate about unread code — Read it first
+- No console.log in production, no commented-out code, no unused imports
 
 ## COMMANDS
 
@@ -128,6 +150,9 @@ bun test                    # Bun test suite
 bun run build              # Build plugin (ESM + declarations + schema)
 bun run build:all          # Build + platform binaries
 bun run typecheck           # tsc --noEmit
+bun run clean               # Remove dist/
+bun run build:schema        # Generate JSON Schema only
+bun run build:binaries      # Cross-compile 11 platform binaries only
 bunx oh-my-opencode install # Interactive setup
 bunx oh-my-opencode doctor  # Health diagnostics
 bunx oh-my-opencode run     # Non-interactive session
@@ -135,14 +160,7 @@ bunx oh-my-opencode run     # Non-interactive session
 
 ## CI/CD
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| ci.yml | push/PR to master/dev | Tests (split: mock-heavy isolated + batch), typecheck, build, schema auto-commit |
-| publish.yml | manual dispatch | Version bump, npm publish, platform binaries, GitHub release, merge to master |
-| publish-platform.yml | called by publish | 12 platform binaries via bun compile (darwin/linux/windows) |
-| sisyphus-agent.yml | @mention / dispatch | AI agent handles issues/PRs |
-| cla.yml | issue_comment/PR | CLA assistant for contributors |
-| lint-workflows.yml | push to .github/ | actionlint + shellcheck on workflow files |
+Publish pipeline via `script/publish.ts` (with env vars: `BUMP`, `VERSION`, `REPUBLISH`, `SKIP_PLATFORM_PACKAGES`, `CI`). On CI, this also creates git tags and GitHub releases. Workflows (ci.yml, publish.yml, etc.) are managed in the upstream `code-yeongyu/oh-my-openagent` repository.
 
 ## NOTES
 
@@ -155,3 +173,4 @@ bunx oh-my-opencode run     # Non-interactive session
 - Test setup: `test-setup.ts` preloaded via bunfig.toml, mock-heavy tests run in isolation in CI
 - 98 barrel export files (index.ts) establish module boundaries
 - Architecture rules enforced via `.sisyphus/rules/modular-code-enforcement.md`
+- `script/publish.ts` handles full publish: version bump → build → npm publish (11 platform packages) → git tag → GitHub release
