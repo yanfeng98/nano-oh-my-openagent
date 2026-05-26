@@ -8,7 +8,8 @@ import type {
   AvailableCategory,
   AvailableSkill,
 } from "../../agents/dynamic-agent-prompt-builder"
-import { resolveSkillContent, resolveParentContext } from "./context-resolver"
+import { resolveParentContext } from "./context-resolver"
+import { resolveMultipleSkillsAsync } from "../../features/opencode-skill-loader/skill-content"
 import { executeBackgroundContinuation, executeSyncContinuation } from "./continuation"
 import { resolveCategoryExecution } from "./category-resolver"
 import { resolveSubagentExecution } from "./subagent-resolver"
@@ -48,30 +49,30 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
   }).join("\n")
 
   const description = `Spawn agent task with category-based or direct agent selection.
-  
+
   ⚠️  CRITICAL: You MUST provide EITHER category OR subagent_type. Omitting BOTH will FAIL.
-  
+
   **COMMON MISTAKE (DO NOT DO THIS):**
   \`\`\`
   task(description="...", prompt="...", run_in_background=false)  // ❌ FAILS - missing category AND subagent_type
   \`\`\`
-  
+
   **CORRECT - Using category:**
   \`\`\`
   task(category="quick", load_skills=[], description="Fix type error", prompt="...", run_in_background=false)
   \`\`\`
-  
+
   **CORRECT - Using subagent_type:**
   \`\`\`
   task(subagent_type="explore", load_skills=[], description="Find patterns", prompt="...", run_in_background=true)
   \`\`\`
-  
+
   REQUIRED: Provide ONE of:
   - category: For task delegation (uses Sisyphus-Junior with category-optimized model)
   - subagent_type: For direct agent invocation (explore, librarian, oracle, etc.)
-  
+
   **DO NOT provide both.** If category is provided, subagent_type is ignored.
-  
+
   - load_skills: ALWAYS REQUIRED. Pass [] if no skills needed, or ["skill-1", "skill-2"] for category tasks.
   - category: Use predefined category → Spawns Sisyphus-Junior with category config
     Available categories:
@@ -80,12 +81,12 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
   - run_in_background: true=async (returns task_id), false=sync (waits). Default: false. Use background=true ONLY for parallel exploration with 5+ independent queries.
   - session_id: Existing Task session to continue (from previous task output). Continues agent with FULL CONTEXT PRESERVED - saves tokens, maintains continuity.
   - command: The command that triggered this task (optional, for slash command tracking).
-  
+
   **WHEN TO USE session_id:**
   - Task failed/incomplete → session_id with "fix: [specific issue]"
   - Need follow-up on previous result → session_id with additional question
   - Multi-turn conversation with same agent → always session_id instead of new task
-  
+
   Prompts MUST be in English.`
 
   return tool({
@@ -143,14 +144,20 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
 
       const runInBackground = args.run_in_background === true
 
-      const { content: skillContent, contents: skillContents, error: skillError } = await resolveSkillContent(args.load_skills, {
-        gitMasterConfig: options.gitMasterConfig,
-        browserProvider: options.browserProvider,
-        disabledSkills: options.disabledSkills,
-        directory: options.directory,
-      })
-      if (skillError) {
-        return skillError
+      let skillContent: string | undefined
+      let skillContents: string[] = []
+      if (args.load_skills.length > 0) {
+        const { resolved, notFound } = await resolveMultipleSkillsAsync(args.load_skills, {
+          gitMasterConfig: options.gitMasterConfig,
+          browserProvider: options.browserProvider,
+          disabledSkills: options.disabledSkills,
+          directory: options.directory,
+        })
+        if (notFound.length > 0) {
+          return `Skills not found: ${notFound.join(", ")}`
+        }
+        skillContents = Array.from(resolved.values())
+        skillContent = skillContents.join("\n\n")
       }
 
       const parentContext = await resolveParentContext(ctx, options.client)

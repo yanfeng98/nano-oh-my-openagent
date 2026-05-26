@@ -2,12 +2,9 @@ import { tool, type PluginInput, type ToolDefinition } from "@opencode-ai/plugin
 import type { BackgroundManager } from "../../features/background-agent"
 import type { BackgroundTaskArgs } from "./types"
 import { BACKGROUND_TASK_DESCRIPTION } from "./constants"
-import { resolveMessageContext } from "../../features/hook-message-injector"
-import { getSessionAgent } from "../../features/claude-code-session-state"
+import { resolveParentContext } from "../delegate-task/context-resolver"
 import { storeToolMetadata } from "../../features/tool-metadata-store"
-import { log } from "../../shared/logger"
 import { delay } from "./delay"
-import { getMessageDir } from "./message-dir"
 
 type ToolContextWithMetadata = {
   sessionID: string
@@ -37,42 +34,16 @@ export function createBackgroundTask(
       }
 
       try {
-        const messageDir = getMessageDir(ctx.sessionID)
-        const { prevMessage, firstMessageAgent } = await resolveMessageContext(
-          ctx.sessionID,
-          client,
-          messageDir
-        )
-
-        const sessionAgent = getSessionAgent(ctx.sessionID)
-        const parentAgent = ctx.agent ?? sessionAgent ?? firstMessageAgent ?? prevMessage?.agent
-
-        log("[background_task] parentAgent resolution", {
-          sessionID: ctx.sessionID,
-          ctxAgent: ctx.agent,
-          sessionAgent,
-          firstMessageAgent,
-          prevMessageAgent: prevMessage?.agent,
-          resolvedParentAgent: parentAgent,
-        })
-
-        const parentModel =
-          prevMessage?.model?.providerID && prevMessage?.model?.modelID
-            ? {
-                providerID: prevMessage.model.providerID,
-                modelID: prevMessage.model.modelID,
-                ...(prevMessage.model.variant ? { variant: prevMessage.model.variant } : {}),
-              }
-            : undefined
+        const parentContext = await resolveParentContext(ctx, client)
 
         const task = await manager.launch({
           description: args.description,
           prompt: args.prompt,
           agent: args.agent.trim(),
-          parentSessionID: ctx.sessionID,
-          parentMessageID: ctx.messageID,
-          parentModel,
-          parentAgent,
+          parentSessionID: parentContext.sessionID,
+          parentMessageID: parentContext.messageID,
+          parentModel: parentContext.model,
+          parentAgent: parentContext.agent,
         })
 
         const WAIT_FOR_SESSION_INTERVAL_MS = 50

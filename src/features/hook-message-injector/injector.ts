@@ -345,20 +345,83 @@ export function injectHookMessage(
   }
 }
 
-export async function resolveMessageContext(
+/**
+ * Unified message scanner — one API call (SDK) or one directory scan (JSON)
+ * to extract both the nearest message with fields and the first agent.
+ */
+export async function scanSessionMessages(
   sessionID: string,
   client: OpencodeClient,
   messageDir: string | null
-): Promise<{ prevMessage: StoredMessage | null; firstMessageAgent: string | null }> {
-  const [prevMessage, firstMessageAgent] = isSqliteBackend()
-    ? await Promise.all([
-        findNearestMessageWithFieldsFromSDK(client, sessionID),
-        findFirstMessageWithAgentFromSDK(client, sessionID),
-      ])
-    : [
-        messageDir ? findNearestMessageWithFields(messageDir) : null,
-        messageDir ? findFirstMessageWithAgent(messageDir) : null,
-      ]
+): Promise<{ prevMessage: StoredMessage | null; firstAgent: string | null }> {
+  if (isSqliteBackend()) {
+    try {
+      const response = await client.session.messages({ path: { id: sessionID } })
+      const messages = normalizeSDKResponse(response, [] as SDKMessage[], { preferResponseOnMissingData: true })
 
-  return { prevMessage, firstMessageAgent }
+      let firstAgent: string | null = null
+      let nearestStrict: StoredMessage | null = null
+      let nearestLoose: StoredMessage | null = null
+
+      for (const msg of messages) {
+        const stored = convertSDKMessageToStoredMessage(msg)
+        if (!stored) continue
+
+        if (firstAgent === null && stored.agent) {
+          firstAgent = stored.agent
+        }
+
+        if (stored.agent && stored.model?.providerID && stored.model?.modelID) {
+          nearestStrict = stored
+        } else if (stored.agent || (stored.model?.providerID && stored.model?.modelID)) {
+          nearestLoose = stored
+        }
+      }
+
+      return { prevMessage: nearestStrict ?? nearestLoose, firstAgent }
+    } catch (error) {
+      log("[hook-message-injector] SDK message scan failed", {
+        sessionID,
+        error: String(error),
+      })
+      return { prevMessage: null, firstAgent: null }
+    }
+  }
+
+  if (!messageDir) {
+    return { prevMessage: null, firstAgent: null }
+  }
+
+  try {
+    const files = readdirSync(messageDir)
+      .filter((f) => f.endsWith(".json"))
+      .sort()
+
+    let firstAgent: string | null = null
+    let nearestStrict: StoredMessage | null = null
+    let nearestLoose: StoredMessage | null = null
+
+    for (const file of files) {
+      try {
+        const content = readFileSync(join(messageDir, file), "utf-8")
+        const msg = JSON.parse(content) as StoredMessage
+
+        if (firstAgent === null && msg.agent) {
+          firstAgent = msg.agent
+        }
+
+        if (msg.agent && msg.model?.providerID && msg.model?.modelID) {
+          nearestStrict = msg
+        } else if (msg.agent || (msg.model?.providerID && msg.model?.modelID)) {
+          nearestLoose = msg
+        }
+      } catch {
+        continue
+      }
+    }
+
+    return { prevMessage: nearestStrict ?? nearestLoose, firstAgent }
+  } catch {
+    return { prevMessage: null, firstAgent: null }
+  }
 }
