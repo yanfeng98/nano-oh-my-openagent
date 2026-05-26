@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { StoredMessageMeta } from "../types"
-import { getMessageDir } from "./message-dir"
+import { getMessageDir } from "../../../shared/opencode-message-dir"
 import { isSqliteBackend, normalizeSDKResponse } from "../../../shared"
 
 function isRecord(value: unknown): value is Record<string, unknown> {

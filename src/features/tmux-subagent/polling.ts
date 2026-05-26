@@ -14,8 +14,11 @@ import {
   STABLE_POLLS_REQUIRED,
 } from "./polling-constants"
 import { parseSessionStatusMap } from "./session-status-parser"
-import { getMessageCount } from "./session-message-count"
 import { waitForSessionReady as waitForSessionReadyFromClient } from "./session-ready-waiter"
+
+function getMessageCount(data: unknown): number {
+  return Array.isArray(data) ? data.length : 0
+}
 
 type OpencodeClient = PluginInput["client"]
 

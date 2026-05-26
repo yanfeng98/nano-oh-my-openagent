@@ -1,9 +1,12 @@
+import type { PluginInput } from "@opencode-ai/plugin"
+
 import { log } from "../../shared"
 
 import type { BackgroundTaskConfig } from "../../config/schema"
 import type { BackgroundTask } from "./types"
 import type { ConcurrencyManager } from "./concurrency"
-import type { OpencodeClient } from "./opencode-client"
+
+type OpencodeClient = PluginInput["client"]
 
 import {
   DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS,

@@ -2,7 +2,7 @@ import type { FallbackEntry } from "../shared/model-requirements"
 import type { ProviderAvailability } from "./model-fallback-types"
 import { CLI_AGENT_MODEL_REQUIREMENTS } from "./model-fallback-requirements"
 import { isProviderAvailable } from "./provider-availability"
-import { transformModelForProvider } from "./provider-model-id-transform"
+import { transformModelForProvider } from "../shared/provider-model-id-transform"
 
 export function resolveModelFromChain(
 	fallbackChain: FallbackEntry[],

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { transformModelForProvider } from "./provider-model-id-transform"
+import { transformModelForProvider } from "../shared/provider-model-id-transform"
 
 describe("transformModelForProvider", () => {
 	describe("github-copilot provider", () => {
