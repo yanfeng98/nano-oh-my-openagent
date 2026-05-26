@@ -4,7 +4,7 @@ import type { LoadedSkill } from "../../features/opencode-skill-loader/types"
 import type { PluginContext } from "../types"
 
 import { createAutoSlashCommandHook, createCategorySkillReminderHook } from "../../hooks"
-import { safeCreateHook } from "../../shared/safe-create-hook"
+import { createSafeHookFn } from "../../shared/safe-create-hook"
 
 export type SkillHooks = {
   categorySkillReminder: ReturnType<typeof createCategorySkillReminderHook> | null
@@ -28,8 +28,7 @@ export function createSkillHooks(args: {
     availableSkills,
   } = args
 
-  const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
-    safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
+  const safeHook = createSafeHookFn(safeHookEnabled)
 
   const categorySkillReminder = isHookEnabled("category-skill-reminder")
     ? safeHook("category-skill-reminder", () =>

@@ -1,7 +1,10 @@
 export * from "./types"
 export * from "./loader"
 export * from "./merger"
-export * from "./skill-content"
+
+export { clearSkillCache, getAllSkills } from "./skill-discovery"
+export { extractSkillTemplate } from "./loaded-skill-template-extractor"
+export { resolveMultipleSkillsAsync } from "./skill-template-resolver"
 
 export * from "./skill-directory-loader"
 export * from "./loaded-skill-from-path"
@@ -11,6 +14,5 @@ export * from "./skill-definition-record"
 
 export * from "./git-master-template-injection"
 export * from "./skill-discovery"
-export * from "./skill-resolution-options"
 export * from "./loaded-skill-template-extractor"
 export * from "./config-source-discovery"

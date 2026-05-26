@@ -1,6 +1,6 @@
 import type { AvailableSkill } from "../agents/dynamic-agent-prompt-builder"
 import type { OhMyOpenCodeConfig } from "../config"
-import type { BrowserAutomationProvider } from "../config/schema/browser-automation"
+import type { BrowserAutomationProvider } from "../config/schema/feature-schemas"
 import type {
   LoadedSkill,
   SkillScope,

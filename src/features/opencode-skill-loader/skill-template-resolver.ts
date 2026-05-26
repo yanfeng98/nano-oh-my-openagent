@@ -1,5 +1,4 @@
-import type { LoadedSkill } from "./types"
-import type { SkillResolutionOptions } from "./skill-resolution-options"
+import type { LoadedSkill, SkillResolutionOptions } from "./types"
 import { injectGitMasterConfig } from "./git-master-template-injection"
 import { getAllSkills } from "./skill-discovery"
 import { extractSkillTemplate } from "./loaded-skill-template-extractor"

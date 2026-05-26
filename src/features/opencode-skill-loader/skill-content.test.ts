@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { resolveMultipleSkillsAsync } from "./skill-content"
+import { resolveMultipleSkillsAsync } from "./skill-template-resolver"
 
 let originalEnv: Record<string, string | undefined>
 let testConfigDir: string

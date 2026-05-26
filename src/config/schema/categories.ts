@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { FallbackModelsSchema } from "./fallback-models"
+import { FallbackModelsSchema } from "./runtime-schemas"
 
 export const CategoryConfigSchema = z.object({
   description: z.string().optional(),

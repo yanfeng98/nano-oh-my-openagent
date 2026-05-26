@@ -10,7 +10,6 @@ import {
 import { buildDefaultSisyphusJuniorPrompt } from "./default"
 import { buildGptSisyphusJuniorPrompt } from "./gpt"
 import { buildGpt54SisyphusJuniorPrompt } from "./gpt-5-4"
-import { buildGpt53CodexSisyphusJuniorPrompt } from "./gpt-5-3-codex"
 import { buildGeminiSisyphusJuniorPrompt } from "./gemini"
 
 const MODE: AgentMode = "subagent"
@@ -21,13 +20,12 @@ export const SISYPHUS_JUNIOR_DEFAULTS = {
   temperature: 0.1,
 } as const
 
-export type SisyphusJuniorPromptSource = "default" | "gpt" | "gpt-5-4" | "gpt-5-3-codex" | "gemini"
+export type SisyphusJuniorPromptSource = "default" | "gpt" | "gpt-5-4" | "gemini"
 
 export function getSisyphusJuniorPromptSource(model?: string): SisyphusJuniorPromptSource {
   if (model && isGptModel(model)) {
     const lower = model.toLowerCase()
     if (lower.includes("gpt-5.4") || lower.includes("gpt-5-4")) return "gpt-5-4"
-    if (lower.includes("gpt-5.3-codex") || lower.includes("gpt-5-3-codex")) return "gpt-5-3-codex"
     return "gpt"
   }
   if (model && isGeminiModel(model)) {
@@ -46,8 +44,6 @@ export function buildSisyphusJuniorPrompt(
   switch (source) {
     case "gpt-5-4":
       return buildGpt54SisyphusJuniorPrompt(useTaskSystem, promptAppend)
-    case "gpt-5-3-codex":
-      return buildGpt53CodexSisyphusJuniorPrompt(useTaskSystem, promptAppend)
     case "gpt":
       return buildGptSisyphusJuniorPrompt(useTaskSystem, promptAppend)
     case "gemini":

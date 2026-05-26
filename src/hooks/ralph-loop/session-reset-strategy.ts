@@ -1,6 +1,9 @@
 import type { PluginInput } from "@opencode-ai/plugin"
-import { isRecord } from "../../shared/record-type-guard"
 import { log } from "../../shared/logger"
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
 
 export async function createIterationSession(
   ctx: PluginInput,

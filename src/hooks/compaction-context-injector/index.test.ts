@@ -14,7 +14,7 @@ mock.module("../../shared/system-directive", () => ({
   },
 }))
 
-import { createCompactionContextInjector } from "./index"
+import { createCompactionContextInjector } from "./hook"
 import { TaskHistory } from "../../features/background-agent/task-history"
 
 function createMockContext(

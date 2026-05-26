@@ -6,7 +6,7 @@ import { checkTools, gatherToolsSummary } from "./tools"
 import { checkModels } from "./model-resolution"
 
 export type { CheckDefinition }
-export * from "./model-resolution-types"
+export * from "./model-resolution"
 export { gatherSystemInfo, gatherToolsSummary }
 
 export function getAllCheckDefinitions(): CheckDefinition[] {

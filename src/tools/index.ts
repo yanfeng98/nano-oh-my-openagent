@@ -10,31 +10,33 @@ import {
 
 export { lspManager }
 
-export { createAstGrepTools } from "./ast-grep"
-export { createGrepTools } from "./grep"
-export { createGlobTools } from "./glob"
-export { createSkillTool } from "./skill"
+export { createAstGrepTools } from "./ast-grep/tools"
+export { createGrepTools } from "./grep/tools"
+export { createGlobTools } from "./glob/tools"
+export { createSkillTool } from "./skill/tools"
 export { discoverCommandsSync } from "./slashcommand"
-export { createSessionManagerTools } from "./session-manager"
+export { createSessionManagerTools } from "./session-manager/tools"
 
 export { sessionExists } from "./session-manager/storage"
 
 export { interactive_bash, startBackgroundCheck as startTmuxCheck } from "./interactive-bash"
-export { createSkillMcpTool } from "./skill-mcp"
+export { createSkillMcpTool } from "./skill-mcp/tools"
 
 import {
   createBackgroundOutput,
   createBackgroundCancel,
-  type BackgroundOutputManager,
-  type BackgroundCancelClient,
-} from "./background-task"
+} from "./background-task/tools"
+import type {
+  BackgroundOutputManager,
+  BackgroundCancelClient,
+} from "./background-task/types"
 
 import type { PluginInput, ToolDefinition } from "@opencode-ai/plugin"
 import type { BackgroundManager } from "../features/background-agent"
 
 type OpencodeClient = PluginInput["client"]
 
-export { createCallOmoAgent } from "./call-omo-agent"
+export { createCallOmoAgent } from "./call-omo-agent/tools"
 export { createLookAt } from "./look-at"
 export { createDelegateTask } from "./delegate-task"
 export {

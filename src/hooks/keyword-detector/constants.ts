@@ -3,12 +3,12 @@ export const INLINE_CODE_PATTERN = /`[^`]+`/g
 
 // Re-export from submodules
 export { isPlannerAgent, getUltraworkMessage } from "./ultrawork"
-export { SEARCH_PATTERN, SEARCH_MESSAGE } from "./search"
-export { ANALYZE_PATTERN, ANALYZE_MESSAGE } from "./analyze"
+export { SEARCH_PATTERN, SEARCH_MESSAGE } from "./search/default"
+export { ANALYZE_PATTERN, ANALYZE_MESSAGE } from "./analyze/default"
 
 import { getUltraworkMessage } from "./ultrawork"
-import { SEARCH_PATTERN, SEARCH_MESSAGE } from "./search"
-import { ANALYZE_PATTERN, ANALYZE_MESSAGE } from "./analyze"
+import { SEARCH_PATTERN, SEARCH_MESSAGE } from "./search/default"
+import { ANALYZE_PATTERN, ANALYZE_MESSAGE } from "./analyze/default"
 
 export type KeywordDetector = {
   pattern: RegExp

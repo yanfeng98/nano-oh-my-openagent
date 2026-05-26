@@ -21,7 +21,7 @@ import {
   log,
   OPENCODE_NATIVE_AGENTS_INJECTION_VERSION,
 } from "../../shared"
-import { safeCreateHook } from "../../shared/safe-create-hook"
+import { createSafeHookFn } from "../../shared/safe-create-hook"
 
 export type ToolGuardHooks = {
   commentChecker: ReturnType<typeof createCommentCheckerHooks> | null
@@ -45,8 +45,7 @@ export function createToolGuardHooks(args: {
   safeHookEnabled: boolean
 }): ToolGuardHooks {
   const { ctx, pluginConfig, modelCacheState, isHookEnabled, safeHookEnabled } = args
-  const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
-    safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
+  const safeHook = createSafeHookFn(safeHookEnabled)
 
   const commentChecker = isHookEnabled("comment-checker")
     ? safeHook("comment-checker", () => createCommentCheckerHooks(pluginConfig.comment_checker))

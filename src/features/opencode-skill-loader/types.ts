@@ -1,5 +1,13 @@
+import type { BrowserAutomationProvider, GitMasterConfig } from "../../config/schema"
 import type { CommandDefinition } from "../claude-code-command-loader/types"
 import type { SkillMcpConfig } from "../skill-mcp-manager/types"
+
+export interface SkillResolutionOptions {
+  gitMasterConfig?: GitMasterConfig
+  browserProvider?: BrowserAutomationProvider
+  disabledSkills?: Set<string>
+  directory?: string
+}
 
 export type SkillScope = "builtin" | "config" | "user" | "project" | "opencode" | "opencode-project"
 

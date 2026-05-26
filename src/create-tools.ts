@@ -1,6 +1,6 @@
 import type { AvailableCategory, AvailableSkill } from "./agents/dynamic-agent-prompt-builder"
 import type { OhMyOpenCodeConfig } from "./config"
-import type { BrowserAutomationProvider } from "./config/schema/browser-automation"
+import type { BrowserAutomationProvider } from "./config/schema/feature-schemas"
 import type { LoadedSkill } from "./features/opencode-skill-loader/types"
 import type { PluginContext, ToolsRecord } from "./plugin/types"
 import type { Managers } from "./create-managers"

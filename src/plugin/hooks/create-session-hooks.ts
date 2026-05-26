@@ -27,14 +27,14 @@ import {
   createPreemptiveCompactionHook,
   createRuntimeFallbackHook,
 } from "../../hooks"
-import { createAnthropicEffortHook } from "../../hooks/anthropic-effort"
+import { createAnthropicEffortHook } from "../../hooks/anthropic-effort/hook"
 import {
   detectExternalNotificationPlugin,
   getNotificationConflictWarning,
   log,
   normalizeSDKResponse,
 } from "../../shared"
-import { safeCreateHook } from "../../shared/safe-create-hook"
+import { createSafeHookFn } from "../../shared/safe-create-hook"
 import { sessionExists } from "../../tools"
 
 export type SessionHooks = {
@@ -72,8 +72,7 @@ export function createSessionHooks(args: {
   safeHookEnabled: boolean
 }): SessionHooks {
   const { ctx, pluginConfig, modelCacheState, isHookEnabled, safeHookEnabled } = args
-  const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
-    safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
+  const safeHook = createSafeHookFn(safeHookEnabled)
 
   const contextWindowMonitor = isHookEnabled("context-window-monitor")
     ? safeHook("context-window-monitor", () =>

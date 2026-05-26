@@ -9,7 +9,7 @@ import type {
   AvailableSkill,
 } from "../../agents/dynamic-agent-prompt-builder"
 import { resolveParentContext } from "./context-resolver"
-import { resolveMultipleSkillsAsync } from "../../features/opencode-skill-loader/skill-content"
+import { resolveMultipleSkillsAsync } from "../../features/opencode-skill-loader"
 import { executeBackgroundContinuation, executeSyncContinuation } from "./continuation"
 import { resolveCategoryExecution } from "./category-resolver"
 import { resolveSubagentExecution } from "./subagent-resolver"

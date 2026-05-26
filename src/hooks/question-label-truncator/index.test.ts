@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createQuestionLabelTruncatorHook } from "./index";
+import { createQuestionLabelTruncatorHook } from "./hook";
 
 describe("createQuestionLabelTruncatorHook", () => {
   const hook = createQuestionLabelTruncatorHook();

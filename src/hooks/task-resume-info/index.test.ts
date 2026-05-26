@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { createTaskResumeInfoHook } from "./index"
+import { createTaskResumeInfoHook } from "./hook"
 
 describe("createTaskResumeInfoHook", () => {
   const hook = createTaskResumeInfoHook()

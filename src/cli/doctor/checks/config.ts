@@ -5,9 +5,8 @@ import { OhMyOpenCodeConfigSchema } from "../../../config"
 import { detectConfigFile, getOpenCodeConfigDir, parseJsonc } from "../../../shared"
 import { CHECK_IDS, CHECK_NAMES, PACKAGE_NAME } from "../constants"
 import type { CheckResult, DoctorIssue } from "../types"
-import { loadAvailableModelsFromCache } from "./model-resolution-cache"
-import { getModelResolutionInfoWithOverrides } from "./model-resolution"
-import type { OmoConfig } from "./model-resolution-types"
+import { getModelResolutionInfoWithOverrides, loadAvailableModelsFromCache } from "./model-resolution"
+import type { OmoConfig } from "./model-resolution"
 
 const USER_CONFIG_BASE = join(getOpenCodeConfigDir({ binary: "opencode" }), PACKAGE_NAME)
 const PROJECT_CONFIG_BASE = join(process.cwd(), ".opencode", PACKAGE_NAME)

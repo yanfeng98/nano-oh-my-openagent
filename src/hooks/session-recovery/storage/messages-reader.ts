@@ -4,7 +4,10 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import type { StoredMessageMeta } from "../types"
 import { getMessageDir } from "./message-dir"
 import { isSqliteBackend, normalizeSDKResponse } from "../../../shared"
-import { isRecord } from "../../../shared/record-type-guard"
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
 
 type OpencodeClient = PluginInput["client"]
 

@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test"
-import { createTaskReminderHook } from "./index"
+import { createTaskReminderHook } from "./hook"
 import type { PluginInput } from "@opencode-ai/plugin"
 
 const mockCtx = {} as PluginInput

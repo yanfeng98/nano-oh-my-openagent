@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "bun:test"
 import { setCompactionAgentConfigCheckpoint } from "../../shared/compaction-agent-config-checkpoint"
-import { createCompactionContextInjector } from "./index"
+import { createCompactionContextInjector } from "./hook"
 
 type SessionMessageResponse = Array<{
   info?: Record<string, unknown>

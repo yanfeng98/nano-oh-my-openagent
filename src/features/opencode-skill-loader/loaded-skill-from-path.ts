@@ -4,8 +4,15 @@ import { parseFrontmatter } from "../../shared/frontmatter"
 import { sanitizeModelField } from "../../shared/model-sanitizer"
 import { resolveSkillPathReferences } from "../../shared/skill-path-resolver"
 import type { CommandDefinition } from "../claude-code-command-loader/types"
-import { parseAllowedTools } from "./allowed-tools-parser"
 import { loadMcpJsonFromDir, parseSkillMcpConfigFromFrontmatter } from "./skill-mcp-config"
+
+function parseAllowedTools(allowedTools: string | string[] | undefined): string[] | undefined {
+  if (!allowedTools) return undefined
+  if (Array.isArray(allowedTools)) {
+    return allowedTools.map((tool) => tool.trim()).filter(Boolean)
+  }
+  return allowedTools.split(/\s+/).filter(Boolean)
+}
 import type { SkillScope, SkillMetadata, LoadedSkill, LazyContentLoader } from "./types"
 
 export async function loadSkillFromPath(options: {

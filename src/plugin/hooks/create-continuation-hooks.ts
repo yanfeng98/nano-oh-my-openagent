@@ -11,7 +11,7 @@ import {
   createCompactionTodoPreserverHook,
   createAtlasHook,
 } from "../../hooks"
-import { safeCreateHook } from "../../shared/safe-create-hook"
+import { createSafeHookFn } from "../../shared/safe-create-hook"
 import { createUnstableAgentBabysitter } from "../unstable-agent-babysitter"
 
 export type ContinuationHooks = {
@@ -47,8 +47,7 @@ export function createContinuationHooks(args: {
     sessionRecovery,
   } = args
 
-  const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
-    safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
+  const safeHook = createSafeHookFn(safeHookEnabled)
 
   const stopContinuationGuard = isHookEnabled("stop-continuation-guard")
     ? safeHook("stop-continuation-guard", () =>

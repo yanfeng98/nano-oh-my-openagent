@@ -40,7 +40,7 @@ export type {
   ModelResolutionRequest,
   ModelResolutionProvenance,
   ModelResolutionResult,
-} from "./model-resolution-types"
+} from "./model-resolution-pipeline"
 export * from "./model-availability"
 export * from "./fallback-model-availability"
 export * from "./connected-providers-cache"
