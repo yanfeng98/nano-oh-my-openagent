@@ -9,7 +9,7 @@ import type { Tool, Resource, Prompt } from "@modelcontextprotocol/sdk/types.js"
 import { discoverCommandsSync } from "../slashcommand/command-discovery"
 import type { CommandInfo } from "../slashcommand/types"
 import { formatLoadedCommand } from "../slashcommand/command-output-formatter"
-// Priority: project > user > opencode/opencode-project > builtin/config
+
 const scopePriority: Record<string, number> = {
   project: 4,
   user: 3,
@@ -40,11 +40,8 @@ function formatCombinedDescription(skills: SkillInfo[], commands: CommandInfo[])
     return TOOL_DESCRIPTION_NO_SKILLS
   }
 
-  // Uses module-level scopePriority for consistent priority ordering
-
   const allItems: string[] = []
 
-  // Skills rendered as command items (skills are also slash-invocable)
   if (skills.length > 0) {
     const sortedSkills = [...skills].sort((a, b) => {
       const priorityA = scopePriority[a.scope] || 0
@@ -66,12 +63,11 @@ function formatCombinedDescription(skills: SkillInfo[], commands: CommandInfo[])
     })
   }
 
-  // Sort and add commands second (commands after skills)
   if (commands.length > 0) {
     const sortedCommands = [...commands].sort((a, b) => {
       const priorityA = scopePriority[a.scope] || 0
       const priorityB = scopePriority[b.scope] || 0
-      return priorityB - priorityA // Higher priority first
+      return priorityB - priorityA
     })
     sortedCommands.forEach(cmd => {
       const hint = cmd.metadata.argumentHint ? ` ${cmd.metadata.argumentHint}` : ""
