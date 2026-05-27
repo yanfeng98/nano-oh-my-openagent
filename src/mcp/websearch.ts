@@ -1,12 +1,5 @@
 import type { WebsearchConfig } from "../config/schema"
-
-type RemoteMcpConfig = {
-  type: "remote"
-  url: string
-  enabled: boolean
-  headers?: Record<string, string>
-  oauth?: false
-}
+import type { RemoteMcpConfig } from "./types"
 
 export function createWebsearchConfig(config?: WebsearchConfig): RemoteMcpConfig {
   const provider = config?.provider || "exa"
@@ -39,5 +32,3 @@ export function createWebsearchConfig(config?: WebsearchConfig): RemoteMcpConfig
     oauth: false as const,
   }
 }
-
-export const websearch = createWebsearchConfig()

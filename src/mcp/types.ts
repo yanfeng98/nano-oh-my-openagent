@@ -7,3 +7,11 @@ export type McpName = z.infer<typeof McpNameSchema>
 export const AnyMcpNameSchema = z.string().min(1)
 
 export type AnyMcpName = z.infer<typeof AnyMcpNameSchema>
+
+export type RemoteMcpConfig = {
+  type: "remote"
+  url: string
+  enabled: boolean
+  headers?: Record<string, string>
+  oauth?: false
+}

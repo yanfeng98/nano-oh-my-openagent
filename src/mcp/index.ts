@@ -2,16 +2,9 @@ import { createWebsearchConfig } from "./websearch"
 import { context7 } from "./context7"
 import { grep_app } from "./grep-app"
 import type { OhMyOpenCodeConfig } from "../config/schema"
+import type { RemoteMcpConfig } from "./types"
 
-export { McpNameSchema, type McpName } from "./types"
-
-type RemoteMcpConfig = {
-  type: "remote"
-  url: string
-  enabled: boolean
-  headers?: Record<string, string>
-  oauth?: false
-}
+export { McpNameSchema, type McpName, type RemoteMcpConfig } from "./types"
 
 export function createBuiltinMcps(disabledSet: Set<string>, config?: OhMyOpenCodeConfig) {
   const mcps: Record<string, RemoteMcpConfig> = {}
