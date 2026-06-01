@@ -1,7 +1,3 @@
-/**
- * Simple counting semaphore to limit concurrent process execution.
- * Used to prevent multiple ripgrep processes from saturating CPU.
- */
 export class Semaphore {
   private queue: (() => void)[] = []
   private running = 0
@@ -28,5 +24,4 @@ export class Semaphore {
   }
 }
 
-/** Global semaphore limiting concurrent ripgrep processes to 2 */
 export const rgSemaphore = new Semaphore(2)

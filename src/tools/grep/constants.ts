@@ -37,9 +37,7 @@ function getOpenCodeBundledRg(): string | null {
   const rgName = isWindows ? "rg.exe" : "rg"
 
   const candidates = [
-    // OpenCode XDG data path (highest priority - where OpenCode installs rg)
     join(getDataDir(), "opencode", "bin", rgName),
-    // Legacy paths relative to execPath
     join(execDir, rgName),
     join(execDir, "bin", rgName),
     join(execDir, "..", "bin", rgName),
