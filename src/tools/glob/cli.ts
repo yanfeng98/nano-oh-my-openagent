@@ -53,30 +53,6 @@ function buildFindArgs(options: GlobOptions): string[] {
   return args
 }
 
-function buildPowerShellCommand(options: GlobOptions): string[] {
-  const maxDepth = Math.min(options.maxDepth ?? DEFAULT_MAX_DEPTH, DEFAULT_MAX_DEPTH)
-  const paths = options.paths?.length ? options.paths : ["."]
-  const searchPath = paths[0] || "."
-
-  const escapedPath = searchPath.replace(/'/g, "''")
-  const escapedPattern = options.pattern.replace(/'/g, "''")
-
-  let psCommand = `Get-ChildItem -Path '${escapedPath}' -File -Recurse -Depth ${maxDepth - 1} -Filter '${escapedPattern}'`
-
-  if (options.hidden !== false) {
-    psCommand += " -Force"
-  }
-
-  // NOTE: Symlink following (-FollowSymlink) is NOT supported in PowerShell backend.
-  // -FollowSymlink was introduced in PowerShell Core 6.0+ and is unavailable in
-  // Windows PowerShell 5.1 (default on Windows). OpenCode auto-downloads ripgrep
-  // which handles symlinks via --follow. This fallback rarely triggers in practice.
-
-  psCommand += " -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName"
-
-  return ["powershell", "-NoProfile", "-Command", psCommand]
-}
-
 async function getFileMtime(filePath: string): Promise<number> {
   try {
     const stats = await stat(filePath)
@@ -107,7 +83,6 @@ async function runRgFilesInternal(
   const limit = Math.min(options.limit ?? DEFAULT_LIMIT, DEFAULT_LIMIT)
 
   const isRg = cli.backend === "rg"
-  const isWindows = process.platform === "win32"
 
   let command: string[]
   let cwd: string | undefined
@@ -117,9 +92,6 @@ async function runRgFilesInternal(
     cwd = options.paths?.[0] || "."
     args.push(".")
     command = [cli.path, ...args]
-  } else if (isWindows) {
-    command = buildPowerShellCommand(options)
-    cwd = undefined
   } else {
     const args = buildFindArgs(options)
     const paths = options.paths?.length ? options.paths : ["."]
@@ -157,8 +129,6 @@ async function runRgFilesInternal(
       let filePath: string
       if (isRg) {
         filePath = cwd ? resolve(cwd, line) : line
-      } else if (isWindows) {
-        filePath = line.trim()
       } else {
         filePath = `${cwd}/${line}`
       }
