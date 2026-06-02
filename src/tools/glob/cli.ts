@@ -1,8 +1,8 @@
 import { resolve } from "node:path"
-import { spawn } from "bun"
 import {
   resolveGrepCli,
   type GrepBackend,
+  type ResolvedCli,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_LIMIT,
   DEFAULT_MAX_DEPTH,
@@ -13,11 +13,7 @@ import {
 import type { GlobOptions, GlobResult, FileMatch } from "./types"
 import { stat } from "node:fs/promises"
 import { rgSemaphore } from "../shared/semaphore"
-
-export interface ResolvedCli {
-  path: string
-  backend: GrepBackend
-}
+import { spawnWithTimeout } from "../shared/spawn-utils"
 
 function buildRgArgs(options: GlobOptions): string[] {
   const args: string[] = [
@@ -90,8 +86,6 @@ async function getFileMtime(filePath: string): Promise<number> {
   }
 }
 
-export { buildRgArgs, buildFindArgs, buildPowerShellCommand }
-
 export async function runRgFiles(
   options: GlobOptions,
   resolvedCli?: ResolvedCli
@@ -133,24 +127,9 @@ async function runRgFilesInternal(
     command = [cli.path, ...args]
   }
 
-  const proc = spawn(command, {
-    stdout: "pipe",
-    stderr: "pipe",
-    cwd,
-  })
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const id = setTimeout(() => {
-      proc.kill()
-      reject(new Error(`Glob search timeout after ${timeout}ms`))
-    }, timeout)
-    proc.exited.then(() => clearTimeout(id))
-  })
-
   try {
-    const stdout = await Promise.race([new Response(proc.stdout).text(), timeoutPromise])
-    const stderr = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
+    const [cmd, ...restArgs] = command
+    const { stdout, stderr, exitCode } = await spawnWithTimeout(cmd, restArgs, timeout, { cwd, errorLabel: "Glob search" })
 
     if (exitCode > 1 && stderr.trim()) {
       return {

@@ -1,4 +1,4 @@
-import { spawn } from "bun"
+import { spawnWithTimeout, type SpawnResult } from "../shared/spawn-utils"
 import {
   resolveGrepCli,
   type GrepBackend,
@@ -89,41 +89,6 @@ function buildArgs(options: GrepOptions, backend: GrepBackend): string[] {
   return backend === "rg" ? buildRgArgs(options) : buildGrepArgs(options)
 }
 
-interface SpawnResult {
-  stdout: string
-  stderr: string
-  exitCode: number
-}
-
-async function spawnWithTimeout(
-  command: string,
-  args: string[],
-  timeout: number,
-): Promise<SpawnResult> {
-  const proc = spawn([command, ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const id = setTimeout(() => {
-      proc.kill()
-      reject(new Error(`Search timeout after ${timeout}ms`))
-    }, timeout)
-    proc.exited.then(() => clearTimeout(id))
-  })
-
-  try {
-    const stdout = await Promise.race([new Response(proc.stdout).text(), timeoutPromise])
-    const stderr = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
-    return { stdout, stderr, exitCode }
-  } catch (e) {
-    proc.kill()
-    throw e
-  }
-}
-
 function parseOutput(output: string, filesOnly = false): GrepMatch[] {
   if (!output.trim()) return []
 
@@ -204,7 +169,7 @@ async function runRgInternal(options: GrepOptions): Promise<GrepResult> {
   args.push(...paths)
 
   try {
-    const { stdout, stderr, exitCode } = await spawnWithTimeout(cli.path, args, timeout)
+    const { stdout, stderr, exitCode } = await spawnWithTimeout(cli.path, args, timeout, { errorLabel: "Search" })
 
     const truncated = stdout.length >= DEFAULT_MAX_OUTPUT_BYTES
     const outputToProcess = truncated ? stdout.substring(0, DEFAULT_MAX_OUTPUT_BYTES) : stdout
@@ -266,7 +231,7 @@ async function runRgCountInternal(options: Omit<GrepOptions, "context">): Promis
   args.push(...paths)
 
   try {
-    const { stdout } = await spawnWithTimeout(cli.path, args, timeout)
+    const { stdout } = await spawnWithTimeout(cli.path, args, timeout, { errorLabel: "Search" })
     return parseCountOutput(stdout)
   } catch (e) {
     throw new Error(`Count search failed: ${e instanceof Error ? e.message : String(e)}`)

@@ -6,7 +6,7 @@ import { getDataDir } from "../../shared/data-path"
 
 export type GrepBackend = "rg" | "grep"
 
-interface ResolvedCli {
+export interface ResolvedCli {
   path: string
   backend: GrepBackend
 }
