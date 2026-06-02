@@ -54,12 +54,6 @@ function buildRgArgs(options: GrepOptions): string[] {
     }
   }
 
-  if (options.outputMode === "files_with_matches") {
-    args.push("--files-with-matches")
-  } else if (options.outputMode === "count") {
-    args.push("--count")
-  }
-
   return args
 }
 
@@ -95,6 +89,41 @@ function buildArgs(options: GrepOptions, backend: GrepBackend): string[] {
   return backend === "rg" ? buildRgArgs(options) : buildGrepArgs(options)
 }
 
+interface SpawnResult {
+  stdout: string
+  stderr: string
+  exitCode: number
+}
+
+async function spawnWithTimeout(
+  command: string,
+  args: string[],
+  timeout: number,
+): Promise<SpawnResult> {
+  const proc = spawn([command, ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    const id = setTimeout(() => {
+      proc.kill()
+      reject(new Error(`Search timeout after ${timeout}ms`))
+    }, timeout)
+    proc.exited.then(() => clearTimeout(id))
+  })
+
+  try {
+    const stdout = await Promise.race([new Response(proc.stdout).text(), timeoutPromise])
+    const stderr = await new Response(proc.stderr).text()
+    const exitCode = await proc.exited
+    return { stdout, stderr, exitCode }
+  } catch (e) {
+    proc.kill()
+    throw e
+  }
+}
+
 function parseOutput(output: string, filesOnly = false): GrepMatch[] {
   if (!output.trim()) return []
 
@@ -105,7 +134,6 @@ function parseOutput(output: string, filesOnly = false): GrepMatch[] {
     if (!line.trim()) continue
 
     if (filesOnly) {
-      // --files-with-matches outputs only file paths, one per line
       matches.push({
         file: line.trim(),
         line: 0,
@@ -162,6 +190,10 @@ async function runRgInternal(options: GrepOptions): Promise<GrepResult> {
   const args = buildArgs(options, cli.backend)
   const timeout = Math.min(options.timeout ?? DEFAULT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS)
 
+  if (options.outputMode === "files_with_matches") {
+    args.push(cli.backend === "rg" ? "--files-with-matches" : "-l")
+  }
+
   if (cli.backend === "rg") {
     args.push("--", options.pattern)
   } else {
@@ -170,23 +202,9 @@ async function runRgInternal(options: GrepOptions): Promise<GrepResult> {
 
   const paths = options.paths?.length ? options.paths : ["."]
   args.push(...paths)
-  const proc = spawn([cli.path, ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const id = setTimeout(() => {
-      proc.kill()
-      reject(new Error(`Search timeout after ${timeout}ms`))
-    }, timeout)
-    proc.exited.then(() => clearTimeout(id))
-  })
 
   try {
-    const stdout = await Promise.race([new Response(proc.stdout).text(), timeoutPromise])
-    const stderr = await new Response(proc.stderr).text()
-    const exitCode = await proc.exited
+    const { stdout, stderr, exitCode } = await spawnWithTimeout(cli.path, args, timeout)
 
     const truncated = stdout.length >= DEFAULT_MAX_OUTPUT_BYTES
     const outputToProcess = truncated ? stdout.substring(0, DEFAULT_MAX_OUTPUT_BYTES) : stdout
@@ -235,7 +253,8 @@ export async function runRgCount(options: Omit<GrepOptions, "context">): Promise
 
 async function runRgCountInternal(options: Omit<GrepOptions, "context">): Promise<CountResult[]> {
   const cli = resolveGrepCli()
-  const args = buildArgs({ ...options, context: 0 }, cli.backend)
+  const args = buildArgs(options as GrepOptions, cli.backend)
+  const timeout = Math.min(options.timeout ?? DEFAULT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS)
 
   if (cli.backend === "rg") {
     args.push("--count", "--", options.pattern)
@@ -246,22 +265,8 @@ async function runRgCountInternal(options: Omit<GrepOptions, "context">): Promis
   const paths = options.paths?.length ? options.paths : ["."]
   args.push(...paths)
 
-  const timeout = Math.min(options.timeout ?? DEFAULT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS)
-  const proc = spawn([cli.path, ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const id = setTimeout(() => {
-      proc.kill()
-      reject(new Error(`Search timeout after ${timeout}ms`))
-    }, timeout)
-    proc.exited.then(() => clearTimeout(id))
-  })
-
   try {
-    const stdout = await Promise.race([new Response(proc.stdout).text(), timeoutPromise])
+    const { stdout } = await spawnWithTimeout(cli.path, args, timeout)
     return parseCountOutput(stdout)
   } catch (e) {
     throw new Error(`Count search failed: ${e instanceof Error ? e.message : String(e)}`)
