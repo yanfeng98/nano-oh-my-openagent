@@ -8,7 +8,6 @@ export function isServerInstalled(command: string[]): boolean {
 
   const cmd = command[0]
 
-  // Support absolute paths (e.g., C:\Users\...\server.exe or /usr/local/bin/server)
   if (cmd.includes("/") || cmd.includes("\\")) {
     if (existsSync(cmd)) return true
   }

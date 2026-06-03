@@ -52,7 +52,6 @@ export class LSPClient extends LSPClientConnection {
       contentChanges: [{ text }],
     })
 
-    // Some servers update diagnostics only after save
     this.sendNotification("textDocument/didSave", {
       textDocument: { uri },
       text,

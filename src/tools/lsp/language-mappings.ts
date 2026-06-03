@@ -34,8 +34,6 @@ export const SEVERITY_MAP: Record<number, string> = {
   4: "hint",
 }
 
-// Synced with OpenCode's language.ts
-// https://github.com/sst/opencode/blob/dev/packages/opencode/src/lsp/language.ts
 export const EXT_TO_LANG: Record<string, string> = {
   ".abap": "abap",
   ".bat": "bat",

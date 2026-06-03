@@ -43,8 +43,6 @@ export const LSP_INSTALL_HINTS: Record<string, string> = {
   "kotlin-ls": "See https://github.com/Kotlin/kotlin-lsp",
 }
 
-// Synced with OpenCode's server.ts
-// https://github.com/sst/opencode/blob/dev/packages/opencode/src/lsp/server.ts
 export const BUILTIN_SERVERS: Record<string, Omit<LSPServerConfig, "id">> = {
   typescript: { command: ["typescript-language-server", "--stdio"], extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"] },
   deno: { command: ["deno", "lsp"], extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs"] },
