@@ -1,6 +1,6 @@
-import { readFileSync, writeFileSync } from "fs"
+import { readFileSync, unlinkSync, writeFileSync } from "fs"
 
-import { uriToPath } from "./lsp-client-wrapper"
+import { fileURLToPath } from "node:url"
 import type { TextEdit, WorkspaceEdit } from "./types"
 
 export interface ApplyResult {
@@ -55,7 +55,7 @@ export function applyWorkspaceEdit(edit: WorkspaceEdit | null): ApplyResult {
 
   if (edit.changes) {
     for (const [uri, edits] of Object.entries(edit.changes)) {
-      const filePath = uriToPath(uri)
+      const filePath = fileURLToPath(uri)
       const applyResult = applyTextEditsToFile(filePath, edits)
 
       if (applyResult.success) {
@@ -73,7 +73,7 @@ export function applyWorkspaceEdit(edit: WorkspaceEdit | null): ApplyResult {
       if ("kind" in change) {
         if (change.kind === "create") {
           try {
-            const filePath = uriToPath(change.uri)
+            const filePath = fileURLToPath(change.uri)
             writeFileSync(filePath, "", "utf-8")
             result.filesModified.push(filePath)
           } catch (err) {
@@ -82,11 +82,11 @@ export function applyWorkspaceEdit(edit: WorkspaceEdit | null): ApplyResult {
           }
         } else if (change.kind === "rename") {
           try {
-            const oldPath = uriToPath(change.oldUri)
-            const newPath = uriToPath(change.newUri)
+            const oldPath = fileURLToPath(change.oldUri)
+            const newPath = fileURLToPath(change.newUri)
             const content = readFileSync(oldPath, "utf-8")
             writeFileSync(newPath, content, "utf-8")
-            require("fs").unlinkSync(oldPath)
+            unlinkSync(oldPath)
             result.filesModified.push(newPath)
           } catch (err) {
             result.success = false
@@ -94,8 +94,8 @@ export function applyWorkspaceEdit(edit: WorkspaceEdit | null): ApplyResult {
           }
         } else if (change.kind === "delete") {
           try {
-            const filePath = uriToPath(change.uri)
-            require("fs").unlinkSync(filePath)
+            const filePath = fileURLToPath(change.uri)
+            unlinkSync(filePath)
             result.filesModified.push(filePath)
           } catch (err) {
             result.success = false
@@ -103,7 +103,7 @@ export function applyWorkspaceEdit(edit: WorkspaceEdit | null): ApplyResult {
           }
         }
       } else {
-        const filePath = uriToPath(change.textDocument.uri)
+        const filePath = fileURLToPath(change.textDocument.uri)
         const applyResult = applyTextEditsToFile(filePath, change.edits)
 
         if (applyResult.success) {

@@ -1,8 +1,6 @@
 type UnknownRecord = Record<string, unknown>
 
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../shared/type-guards"
 
 function getNestedRecord(value: unknown, key: string): UnknownRecord | undefined {
   if (!isRecord(value)) return undefined

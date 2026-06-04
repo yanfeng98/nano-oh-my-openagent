@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "fs"
 import { join } from "path"
 
-import { BUILTIN_SERVERS } from "./constants"
+import { BUILTIN_SERVERS } from "./server-definitions"
 import type { ResolvedServer } from "./types"
 import { getOpenCodeConfigDir } from "../../shared"
 import { parseJsonc, detectConfigFile } from "../../shared/jsonc-parser"

@@ -1,4 +1,5 @@
 import { log } from "./logger"
+import { isRecord } from "./type-guards"
 
 export function getServerBasicAuthHeader(): string | undefined {
   const password = process.env.OPENCODE_SERVER_PASSWORD
@@ -13,10 +14,6 @@ export function getServerBasicAuthHeader(): string | undefined {
 }
 
 type UnknownRecord = Record<string, unknown>
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null
-}
 
 function isRequestFetch(value: unknown): value is (request: Request) => Promise<Response> {
   return typeof value === "function"

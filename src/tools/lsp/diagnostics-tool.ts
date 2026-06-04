@@ -4,7 +4,7 @@ import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 
 import { DEFAULT_MAX_DIAGNOSTICS } from "./constants"
 import { aggregateDiagnosticsForDirectory } from "./directory-diagnostics"
-import { filterDiagnosticsBySeverity, formatDiagnostic } from "./lsp-formatters"
+import { filterDiagnosticsBySeverity, formatDiagnostic, formatWithLimit, getErrorMessage } from "./lsp-formatters"
 import { isDirectoryPath, withLspClient } from "./lsp-client-wrapper"
 import type { Diagnostic } from "./types"
 
@@ -53,22 +53,12 @@ export const lsp_diagnostics: ToolDefinition = tool({
       diagnostics = filterDiagnosticsBySeverity(diagnostics, args.severity)
 
       if (diagnostics.length === 0) {
-        const output = "No diagnostics found"
-        return output
+        return "No diagnostics found"
       }
 
-      const total = diagnostics.length
-      const truncated = total > DEFAULT_MAX_DIAGNOSTICS
-      const limited = truncated ? diagnostics.slice(0, DEFAULT_MAX_DIAGNOSTICS) : diagnostics
-      const lines = limited.map(formatDiagnostic)
-      if (truncated) {
-        lines.unshift(`Found ${total} diagnostics (showing first ${DEFAULT_MAX_DIAGNOSTICS}):`)
-      }
-      const output = lines.join("\n")
-      return output
+      return formatWithLimit(diagnostics, DEFAULT_MAX_DIAGNOSTICS, "diagnostics", formatDiagnostic).join("\n")
     } catch (e) {
-      const output = `Error: ${e instanceof Error ? e.message : String(e)}`
-      throw new Error(output)
+      throw new Error(getErrorMessage(e))
     }
   },
 })

@@ -1,9 +1,9 @@
-export * from "./types"
-export * from "./constants"
-export * from "./config"
-export * from "./client"
-export * from "./lsp-client-wrapper"
-export * from "./lsp-formatters"
-export * from "./workspace-edit"
-// NOTE: lsp_servers removed - duplicates OpenCode's built-in LspServers
-export { lsp_goto_definition, lsp_find_references, lsp_symbols, lsp_diagnostics, lsp_prepare_rename, lsp_rename } from "./tools"
+// Public LSP API: tool definitions for tool registry, manager singleton for plugin lifecycle,
+// and server-installation check for the doctor command.
+export { lsp_goto_definition } from "./goto-definition-tool"
+export { lsp_find_references } from "./find-references-tool"
+export { lsp_symbols } from "./symbols-tool"
+export { lsp_diagnostics } from "./diagnostics-tool"
+export { lsp_prepare_rename, lsp_rename } from "./rename-tools"
+export { lspManager } from "./lsp-server"
+export { isServerInstalled } from "./server-installation"

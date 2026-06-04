@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, readdirSync, type Stats } from "fs"
 import { extname, join, resolve } from "path"
 
-import { findServerForExtension } from "./config"
+import { findServerForExtension } from "./server-resolution"
 import { findWorkspaceRoot, formatServerLookupError } from "./lsp-client-wrapper"
 import { filterDiagnosticsBySeverity, formatDiagnostic } from "./lsp-formatters"
 import { LSPClient } from "./lsp-client"

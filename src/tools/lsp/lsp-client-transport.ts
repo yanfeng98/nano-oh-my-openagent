@@ -16,7 +16,7 @@ export class LSPClientTransport {
   protected readonly stderrBuffer: string[] = []
   protected processExited = false
   protected readonly diagnosticsStore = new Map<string, Diagnostic[]>()
-  protected readonly REQUEST_TIMEOUT = 15000
+  protected static readonly REQUEST_TIMEOUT = 15000
 
   constructor(protected root: string, protected server: ResolvedServer) {}
   async start(): Promise<void> {
@@ -141,7 +141,7 @@ export class LSPClientTransport {
       timeoutId = setTimeout(() => {
         const stderr = this.stderrBuffer.slice(-5).join("\n")
         reject(new Error(`LSP request timeout (method: ${method})` + (stderr ? `\nrecent stderr: ${stderr}` : "")))
-      }, this.REQUEST_TIMEOUT)
+      }, LSPClientTransport.REQUEST_TIMEOUT)
     })
 
     const requestPromise = this.connection.sendRequest(method, ...args) as Promise<T>

@@ -1,5 +1,6 @@
 import type { ToolContext } from "@opencode-ai/plugin/tool"
 import { storeToolMetadata } from "../../features/tool-metadata-store"
+import { resolveToolCallID } from "../shared/call-id"
 import { applyHashlineEditsWithReport } from "./edit-operations"
 import { countLineDiffs, generateUnifiedDiff } from "./diff-utils"
 import { canonicalizeFileText, restoreFileText } from "./file-text-canonicalization"
@@ -22,13 +23,6 @@ type ToolContextWithCallID = ToolContext & {
 
 type ToolContextWithMetadata = ToolContextWithCallID & {
   metadata?: (value: unknown) => void
-}
-
-function resolveToolCallID(ctx: ToolContextWithCallID): string | undefined {
-  if (typeof ctx.callID === "string" && ctx.callID.trim() !== "") return ctx.callID
-  if (typeof ctx.callId === "string" && ctx.callId.trim() !== "") return ctx.callId
-  if (typeof ctx.call_id === "string" && ctx.call_id.trim() !== "") return ctx.call_id
-  return undefined
 }
 
 function canCreateFromMissingFile(edits: HashlineEdit[]): boolean {

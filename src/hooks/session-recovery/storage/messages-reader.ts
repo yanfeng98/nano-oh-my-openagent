@@ -5,9 +5,7 @@ import type { StoredMessageMeta } from "../types"
 import { getMessageDir } from "../../../shared/opencode-message-dir"
 import { isSqliteBackend, normalizeSDKResponse } from "../../../shared"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../../shared/type-guards"
 
 type OpencodeClient = PluginInput["client"]
 

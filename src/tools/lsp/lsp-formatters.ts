@@ -1,5 +1,5 @@
-import { SYMBOL_KIND_MAP, SEVERITY_MAP } from "./constants"
-import { uriToPath } from "./lsp-client-wrapper"
+import { SYMBOL_KIND_MAP, SEVERITY_MAP } from "./language-mappings"
+import { fileURLToPath } from "node:url"
 import type {
   Diagnostic,
   DocumentSymbol,
@@ -9,30 +9,32 @@ import type {
   PrepareRenameResult,
   Range,
   SymbolInfo,
-  TextEdit,
-  WorkspaceEdit,
 } from "./types"
 import type { ApplyResult } from "./workspace-edit"
 
+export function getErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
 export function formatLocation(loc: Location | LocationLink): string {
   if ("targetUri" in loc) {
-    const uri = uriToPath(loc.targetUri)
+    const uri = fileURLToPath(loc.targetUri)
     const line = loc.targetRange.start.line + 1
     const char = loc.targetRange.start.character
     return `${uri}:${line}:${char}`
   }
 
-  const uri = uriToPath(loc.uri)
+  const uri = fileURLToPath(loc.uri)
   const line = loc.range.start.line + 1
   const char = loc.range.start.character
   return `${uri}:${line}:${char}`
 }
 
-export function formatSymbolKind(kind: number): string {
+function formatSymbolKind(kind: number): string {
   return SYMBOL_KIND_MAP[kind] || `Unknown(${kind})`
 }
 
-export function formatSeverity(severity: number | undefined): string {
+function formatSeverity(severity: number | undefined): string {
   if (!severity) return "unknown"
   return SEVERITY_MAP[severity] || `unknown(${severity})`
 }
@@ -119,58 +121,6 @@ export function formatPrepareRenameResult(
   return "Cannot rename at this position"
 }
 
-export function formatTextEdit(edit: TextEdit): string {
-  const startLine = edit.range.start.line + 1
-  const startChar = edit.range.start.character
-  const endLine = edit.range.end.line + 1
-  const endChar = edit.range.end.character
-
-  const rangeStr = `${startLine}:${startChar}-${endLine}:${endChar}`
-  const preview = edit.newText.length > 50 ? edit.newText.substring(0, 50) + "..." : edit.newText
-
-  return `  ${rangeStr}: "${preview}"`
-}
-
-export function formatWorkspaceEdit(edit: WorkspaceEdit | null): string {
-  if (!edit) return "No changes"
-
-  const lines: string[] = []
-
-  if (edit.changes) {
-    for (const [uri, edits] of Object.entries(edit.changes)) {
-      const filePath = uriToPath(uri)
-      lines.push(`File: ${filePath}`)
-      for (const textEdit of edits) {
-        lines.push(formatTextEdit(textEdit))
-      }
-    }
-  }
-
-  if (edit.documentChanges) {
-    for (const change of edit.documentChanges) {
-      if ("kind" in change) {
-        if (change.kind === "create") {
-          lines.push(`Create: ${change.uri}`)
-        } else if (change.kind === "rename") {
-          lines.push(`Rename: ${change.oldUri} -> ${change.newUri}`)
-        } else if (change.kind === "delete") {
-          lines.push(`Delete: ${change.uri}`)
-        }
-      } else {
-        const filePath = uriToPath(change.textDocument.uri)
-        lines.push(`File: ${filePath}`)
-        for (const textEdit of change.edits) {
-          lines.push(formatTextEdit(textEdit))
-        }
-      }
-    }
-  }
-
-  if (lines.length === 0) return "No changes"
-
-  return lines.join("\n")
-}
-
 export function formatApplyResult(result: ApplyResult): string {
   const lines: string[] = []
 
@@ -190,4 +140,28 @@ export function formatApplyResult(result: ApplyResult): string {
   }
 
   return lines.join("\n")
+}
+
+function applyResultLimit<T>(
+  items: T[],
+  limit: number,
+  itemLabel: string
+): { limited: T[]; header: string | null } {
+  const total = items.length
+  const truncated = total > limit
+  const limited = truncated ? items.slice(0, limit) : items
+  const header = truncated ? `Found ${total} ${itemLabel} (showing first ${limit}):` : null
+  return { limited, header }
+}
+
+export function formatWithLimit<T>(
+  items: T[],
+  limit: number,
+  itemLabel: string,
+  formatter: (item: T) => string
+): string[] {
+  const { limited, header } = applyResultLimit(items, limit, itemLabel)
+  const lines = limited.map(formatter)
+  if (header) lines.unshift(header)
+  return lines
 }

@@ -93,6 +93,4 @@ function parseRegistrationResponse(data: unknown): ClientCredentials | null {
   return { clientId }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../shared/type-guards"

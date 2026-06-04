@@ -1,5 +1,6 @@
 import type { OhMyOpenCodeConfig } from "../config";
 import type { PluginContext } from "./types";
+import { isRecord } from "../shared/type-guards"
 
 import {
   clearSessionAgent,
@@ -37,10 +38,6 @@ type FirstMessageVariantGate = {
   markSessionCreated: (sessionInfo: { id?: string; title?: string; parentID?: string } | undefined) => void;
   clear: (sessionID: string) => void;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function normalizeFallbackModelID(modelID: string): string {
   return modelID

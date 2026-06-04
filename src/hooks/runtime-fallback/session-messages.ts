@@ -8,9 +8,7 @@ export type SessionMessage = {
   parts?: SessionMessagePart[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../shared/type-guards"
 
 function isSessionMessage(value: unknown): value is SessionMessage {
   return isRecord(value)

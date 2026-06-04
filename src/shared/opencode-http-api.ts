@@ -1,9 +1,7 @@
 import { getServerBasicAuthHeader } from "./opencode-server-auth"
 import { log } from "./logger"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "./type-guards"
 
 type UnknownRecord = Record<string, unknown>
 

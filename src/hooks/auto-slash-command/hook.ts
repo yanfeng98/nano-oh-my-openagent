@@ -18,9 +18,7 @@ import type {
 } from "./types"
 import type { LoadedSkill } from "../../features/opencode-skill-loader"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../shared/type-guards"
 
 function getDeletedSessionID(properties: unknown): string | null {
   if (!isRecord(properties)) {

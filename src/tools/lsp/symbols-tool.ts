@@ -1,7 +1,7 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 
 import { DEFAULT_MAX_SYMBOLS } from "./constants"
-import { formatDocumentSymbol, formatSymbolInfo } from "./lsp-formatters"
+import { formatDocumentSymbol, formatSymbolInfo, formatWithLimit, getErrorMessage } from "./lsp-formatters"
 import { withLspClient } from "./lsp-client-wrapper"
 import type { DocumentSymbol, SymbolInfo } from "./types"
 
@@ -34,15 +34,8 @@ export const lsp_symbols: ToolDefinition = tool({
           return "No symbols found"
         }
 
-        const total = result.length
         const limit = Math.min(args.limit ?? DEFAULT_MAX_SYMBOLS, DEFAULT_MAX_SYMBOLS)
-        const truncated = total > limit
-        const limited = result.slice(0, limit)
-        const lines = limited.map(formatSymbolInfo)
-        if (truncated) {
-          lines.unshift(`Found ${total} symbols (showing first ${limit}):`)
-        }
-        return lines.join("\n")
+        return formatWithLimit(result, limit, "symbols", formatSymbolInfo).join("\n")
       } else {
         const result = await withLspClient(args.filePath, async (client) => {
           return (await client.documentSymbols(args.filePath)) as DocumentSymbol[] | SymbolInfo[] | null
@@ -52,10 +45,10 @@ export const lsp_symbols: ToolDefinition = tool({
           return "No symbols found"
         }
 
-        const total = result.length
         const limit = Math.min(args.limit ?? DEFAULT_MAX_SYMBOLS, DEFAULT_MAX_SYMBOLS)
+        const total = result.length
         const truncated = total > limit
-        const limited = truncated ? result.slice(0, limit) : result
+        const limited = (truncated ? result.slice(0, limit) : result) as typeof result
 
         const lines: string[] = []
         if (truncated) {
@@ -70,7 +63,7 @@ export const lsp_symbols: ToolDefinition = tool({
         return lines.join("\n")
       }
     } catch (e) {
-      return `Error: ${e instanceof Error ? e.message : String(e)}`
+      return `Error: ${getErrorMessage(e)}`
     }
   },
 })

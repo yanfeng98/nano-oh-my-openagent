@@ -5,9 +5,7 @@ import { PART_STORAGE } from "../constants"
 import type { StoredPart } from "../types"
 import { isSqliteBackend } from "../../../shared"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../../shared/type-guards"
 
 type OpencodeClient = PluginInput["client"]
 

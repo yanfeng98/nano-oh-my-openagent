@@ -1,6 +1,6 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 
-import { formatApplyResult, formatPrepareRenameResult } from "./lsp-formatters"
+import { formatApplyResult, formatPrepareRenameResult, getErrorMessage } from "./lsp-formatters"
 import { withLspClient } from "./lsp-client-wrapper"
 import { applyWorkspaceEdit } from "./workspace-edit"
 import type { PrepareRenameDefaultBehavior, PrepareRenameResult, WorkspaceEdit } from "./types"
@@ -20,11 +20,9 @@ export const lsp_prepare_rename: ToolDefinition = tool({
           | PrepareRenameDefaultBehavior
           | null
       })
-      const output = formatPrepareRenameResult(result)
-      return output
+      return formatPrepareRenameResult(result)
     } catch (e) {
-      const output = `Error: ${e instanceof Error ? e.message : String(e)}`
-      return output
+      return `Error: ${getErrorMessage(e)}`
     }
   },
 })
@@ -42,12 +40,9 @@ export const lsp_rename: ToolDefinition = tool({
       const edit = await withLspClient(args.filePath, async (client) => {
         return (await client.rename(args.filePath, args.line, args.character, args.newName)) as WorkspaceEdit | null
       })
-      const result = applyWorkspaceEdit(edit)
-      const output = formatApplyResult(result)
-      return output
+      return formatApplyResult(applyWorkspaceEdit(edit))
     } catch (e) {
-      const output = `Error: ${e instanceof Error ? e.message : String(e)}`
-      return output
+      return `Error: ${getErrorMessage(e)}`
     }
   },
 })

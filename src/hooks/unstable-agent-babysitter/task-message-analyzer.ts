@@ -21,9 +21,7 @@ function hasData(value: unknown): value is { data?: unknown } {
   return typeof value === "object" && value !== null && "data" in value
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
+import { isRecord } from "../../shared/type-guards"
 
 export function getMessageInfo(value: unknown): MessageInfo | undefined {
   if (!isRecord(value)) return undefined

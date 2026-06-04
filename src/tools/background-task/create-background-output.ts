@@ -9,19 +9,14 @@ import { formatFullSession } from "./full-session-format"
 import { formatTaskResult } from "./task-result-format"
 import { formatTaskStatus } from "./task-status-format"
 
+import { resolveToolCallID } from "../shared/call-id"
+
 type ToolContextWithMetadata = {
   sessionID: string
   metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
   callID?: string
   callId?: string
   call_id?: string
-}
-
-function resolveToolCallID(ctx: ToolContextWithMetadata): string | undefined {
-  if (typeof ctx.callID === "string" && ctx.callID.trim() !== "") return ctx.callID
-  if (typeof ctx.callId === "string" && ctx.callId.trim() !== "") return ctx.callId
-  if (typeof ctx.call_id === "string" && ctx.call_id.trim() !== "") return ctx.call_id
-  return undefined
 }
 
 function formatResolvedTitle(task: BackgroundTask): string {

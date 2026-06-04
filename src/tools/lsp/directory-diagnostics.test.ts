@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import os from "os"
 
-import * as configModule from "./config"
+import * as configModule from "./server-resolution"
 import { lspManager } from "./lsp-server"
 import { isDirectoryPath } from "./lsp-client-wrapper"
 import { aggregateDiagnosticsForDirectory } from "./directory-diagnostics"

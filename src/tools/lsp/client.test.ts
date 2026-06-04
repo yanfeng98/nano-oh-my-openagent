@@ -12,7 +12,9 @@ mock.module("vscode-jsonrpc/node", () => ({
   StreamMessageWriter: function StreamMessageWriter() {},
 }))
 
-import { LSPClient, lspManager, validateCwd } from "./client"
+import { LSPClient } from "./lsp-client"
+import { lspManager } from "./lsp-server"
+import { validateCwd } from "./lsp-process"
 import type { ResolvedServer } from "./types"
 
 describe("LSPClient", () => {
